@@ -52,3 +52,6 @@ app.*.map.json
 *.bak
 *.bak-pre-*
 .DS_Store
+
+# Flutter test failure diffs
+test/failures/
