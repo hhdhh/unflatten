@@ -91,7 +91,7 @@ class CameraPreview extends StatelessWidget {
                     willChange: false,
                     painter: _GrainPainter(
                       amount: tuning.grain * intensity,
-                      seed: signature.grainSeed,
+                      seed: signature.grainSeed.toInt() & 0x7fffffff,
                       colorNoise: recipe.medium.colorNoise,
                     ),
                   ),

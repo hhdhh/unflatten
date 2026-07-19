@@ -128,7 +128,8 @@ class CameraRecipe {
   };
 
   DefectSignature resolveSignature([int? overrideSeed]) {
-    final random = SplitMix64((overrideSeed ?? seed) ^ stableHash(id));
+    final combined = BigInt.from(overrideSeed ?? seed) ^ stableHash(id);
+    final random = SplitMix64(combined);
     return DefectSignature(
       grainSeed: random.nextUint64(),
       dustSeed: random.nextUint64(),
@@ -322,9 +323,9 @@ class DefectSignature {
     required this.chromaOffsetY,
   });
 
-  final int grainSeed;
-  final int dustSeed;
-  final int deadPixelSeed;
+  final BigInt grainSeed;
+  final BigInt dustSeed;
+  final BigInt deadPixelSeed;
   final double lightLeakAngle;
   final double lightLeakOriginX;
   final double lightLeakOriginY;
@@ -409,29 +410,43 @@ class CameraTuning {
   );
 }
 
-int stableHash(String value) {
-  var hash = 0xcbf29ce484222325;
+BigInt stableHash(String value) {
+  // FNV-1a 64-bit offset basis + prime. 用 BigInt 保证 web/native 跨端一致。
+  var hash = BigInt.parse('cbf29ce484222325', radix: 16);
+  final prime = BigInt.from(0x100000001b3);
+  final mask = BigInt.parse('ffffffffffffffff', radix: 16);
   for (final byte in value.codeUnits) {
-    hash = ((hash ^ byte) * 0x100000001b3) & SplitMix64.mask;
+    hash = ((hash ^ BigInt.from(byte)) * prime) & mask;
   }
   return hash;
 }
 
 class SplitMix64 {
-  SplitMix64(int seed) : _state = seed & mask;
+  SplitMix64(Object seedOrBigInt)
+      : _state = seedOrBigInt is BigInt
+            ? (seedOrBigInt & _mask)
+            : (BigInt.from(seedOrBigInt as int) & _mask);
 
-  static const mask = 0xffffffffffffffff;
-  var _state = 0;
+  static final _mask = BigInt.parse('ffffffffffffffff', radix: 16);
+  static final _addend = BigInt.parse('9e3779b97f4a7c15', radix: 16);
+  static final _mulA = BigInt.parse('bf58476d1ce4e5b9', radix: 16);
+  static final _mulB = BigInt.parse('94d049bb133111eb', radix: 16);
 
-  int nextUint64() {
-    _state = (_state + 0x9e3779b97f4a7c15) & mask;
+  BigInt _state;
+
+  BigInt nextUint64() {
+    _state = (_state + _addend) & _mask;
     var value = _state;
-    value = ((value ^ (value >> 30)) * 0xbf58476d1ce4e5b9) & mask;
-    value = ((value ^ (value >> 27)) * 0x94d049bb133111eb) & mask;
-    return (value ^ (value >> 31)) & mask;
+    value = ((value ^ (value >> 30)) * _mulA) & _mask;
+    value = ((value ^ (value >> 27)) * _mulB) & _mask;
+    return (value ^ (value >> 31)) & _mask;
   }
 
-  double nextUnitDouble() => (nextUint64() >> 40) / 16777215;
+  double nextUnitDouble() {
+    // 取高 24 位映射到 [0, 1]
+    final hi = (nextUint64() >> 40).toUnsigned(24).toInt();
+    return hi / 16777215.0;
+  }
 
   double nextSignedDouble() => nextUnitDouble() * 2 - 1;
 }

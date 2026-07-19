@@ -120,14 +120,14 @@ class CameraLabController extends Notifier<CameraLabState> {
   }
 
   void setSeed(int value) {
-    state = state.copyWith(seed: value & SplitMix64.mask);
+    state = state.copyWith(seed: value & 0x7fffffff);
   }
 
   void randomizeSeed() {
     final random = SplitMix64(
       state.seed ^ DateTime.now().microsecondsSinceEpoch,
     );
-    state = state.copyWith(seed: random.nextUint64());
+    state = state.copyWith(seed: random.nextUint64().toInt() & 0x7fffffff);
   }
 
   void setTuning(TuningParameter parameter, double value) {
