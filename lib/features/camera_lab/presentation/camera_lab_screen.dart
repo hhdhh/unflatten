@@ -1059,11 +1059,18 @@ Future<void> _showContactSheet(BuildContext context) {
   );
 }
 
-class _ContactSheet extends ConsumerWidget {
+class _ContactSheet extends ConsumerStatefulWidget {
   const _ContactSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ContactSheet> createState() => _ContactSheetState();
+}
+
+class _ContactSheetState extends ConsumerState<_ContactSheet> {
+  bool _fullRender = true;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(cameraLabProvider);
     return Column(
       children: [
@@ -1081,6 +1088,25 @@ class _ContactSheet extends ConsumerWidget {
                     ),
                     const SizedBox(height: 3),
                     const Text('同一张图，24 台虚拟相机。点击任意结果继续调校。'),
+                  ],
+                ),
+              ),
+              Tooltip(
+                message: _fullRender
+                    ? '关闭后 24 个格子只跑色彩矩阵，跳过颗粒与漏光'
+                    : '开启后 24 个格子都跑完整程序化效果',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      '全实时',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    Switch(
+                      value: _fullRender,
+                      onChanged: (value) =>
+                          setState(() => _fullRender = value),
+                    ),
                   ],
                 ),
               ),
@@ -1137,6 +1163,7 @@ class _ContactSheet extends ConsumerWidget {
                                 imageBytes: state.image?.bytes,
                                 borderRadius: 9,
                                 showOverlay: false,
+                                liteMode: !_fullRender,
                               ),
                             ),
                             const SizedBox(height: 7),

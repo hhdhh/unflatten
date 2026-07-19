@@ -16,6 +16,7 @@ class CameraPreview extends StatelessWidget {
     this.imageBytes,
     this.borderRadius = 24,
     this.showOverlay = true,
+    this.liteMode = false,
   });
 
   final CameraRecipe recipe;
@@ -25,6 +26,7 @@ class CameraPreview extends StatelessWidget {
   final Uint8List? imageBytes;
   final double borderRadius;
   final bool showOverlay;
+  final bool liteMode;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +40,7 @@ class CameraPreview extends StatelessWidget {
             gaplessPlayback: true,
             filterQuality: FilterQuality.high,
           );
+    final runProcedural = !liteMode;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -67,20 +70,20 @@ class CameraPreview extends StatelessWidget {
                   ),
                 ),
               ),
-            if (recipe.lens.chromaticAberration > 0.04)
+            if (runProcedural && recipe.lens.chromaticAberration > 0.04)
               _ChromaticEdge(
                 amount: recipe.lens.chromaticAberration * intensity,
               ),
             if (tuning.flash > 0.02)
               _FlashOverlay(amount: tuning.flash * intensity),
-            if (recipe.condition.lightLeak > 0.02)
+            if (runProcedural && recipe.condition.lightLeak > 0.02)
               _LightLeakOverlay(
                 amount: recipe.condition.lightLeak * intensity,
                 signature: signature,
               ),
             if (tuning.vignette > 0.02)
               _VignetteOverlay(amount: tuning.vignette * intensity),
-            if (tuning.grain > 0.02)
+            if (runProcedural && tuning.grain > 0.02)
               IgnorePointer(
                 child: RepaintBoundary(
                   child: CustomPaint(

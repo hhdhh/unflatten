@@ -4,6 +4,13 @@ Unflatten Studio 是一款开源、本地优先、跨平台的语义图像创作
 
 当前开发重点是 Camera Lab：用户可以导入图片、浏览 24 台虚拟相机、调节 Camera DNA 参数，并使用固定 Seed 复现颗粒、漏光和缺陷签名。
 
+## 桌面与移动端
+
+![Camera Lab 桌面端](test/goldens/camera_lab_desktop.png)
+![Camera Lab 移动端](test/goldens/camera_lab_mobile.png)
+
+> 截图由 `flutter test --update-goldens` 生成，存放在 `test/goldens/`。修改界面后请同步更新视觉基线。
+
 ## 当前能力
 
 - iOS、Android、macOS、Windows、Linux 五平台 Flutter 工程。
@@ -73,4 +80,42 @@ FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
 - v0.5：视频相机滤镜与时间维度缺陷。
 
 详细范围参见 `docs/PRODUCT_SPEC.md`，跨端边界参见 `docs/ARCHITECTURE.md`。
+
+## 平台支持
+
+| 平台 | 状态 |
+|---|---|
+| macOS | 桌面端，已验证 |
+| Windows | 桌面端，工程模板就绪 |
+| Linux | 桌面端，工程模板就绪 |
+| iOS | 工程模板就绪，需 Xcode 全量安装 |
+| Android | 工程模板就绪，需 Android SDK |
+
+Web 不在 v0.1 范围。
+
+## 持续集成
+
+每个 PR 与 push 都会跑：
+
+- `flutter analyze`
+- `flutter test`（单元、Widget、视觉基线）
+- `cargo fmt --all -- --check`
+- `cargo test --workspace`
+
+矩阵覆盖 `ubuntu-latest` 与 `macos-latest`。
+
+## 上手文档
+
+- [`docs/QUICKSTART.md`](docs/QUICKSTART.md)：克隆到运行 5 步。
+- [`docs/RECIPE_FORMAT.md`](docs/RECIPE_FORMAT.md)：`.ucamera` 配方字段表与扩展方式。
+- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)：产品定位、功能范围与原则。
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)：模块边界、状态流与目录说明。
+
+## 许可
+
+本项目使用 [Apache License 2.0](LICENSE)。
+
+## 致谢
+
+Camera DNA 五模块设计的灵感来自银盐胶片、CCD 数码相机与现代手机摄影的视觉语言，但本仓库刻意避免使用真实品牌、相机或胶片型号的名称。所有 24 台内置相机都是化名配方。
 
