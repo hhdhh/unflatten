@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+if command -v cargo >/dev/null 2>&1; then
+  exec cargo "$@"
+fi
+
+rustup_bin="${UNFLATTEN_RUSTUP_BIN:-/opt/homebrew/opt/rustup/bin}"
+dev_root="${UNFLATTEN_DEV_ROOT:-$HOME/Library/Caches/unflatten-dev}"
+if [ ! -x "$rustup_bin/cargo" ]; then
+  echo "未找到 Cargo。请安装 Rust，或设置 UNFLATTEN_RUSTUP_BIN。" >&2
+  exit 1
+fi
+
+export RUSTUP_HOME="${RUSTUP_HOME:-$dev_root/rustup}"
+export CARGO_HOME="${CARGO_HOME:-$dev_root/cargo}"
+exec "$rustup_bin/cargo" "$@"
+

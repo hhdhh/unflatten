@@ -1,0 +1,8 @@
+name: assets_for_android_views
+description: Unflatten 构建期间使用的 Flutter SDK 内部测试素材占位包。
+version: 0.2.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
