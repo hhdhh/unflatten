@@ -123,6 +123,7 @@ Web 不在 v0.1 范围。
 
 - [`docs/QUICKSTART.md`](docs/QUICKSTART.md)：克隆到运行 5 步。
 - [`docs/RECIPE_FORMAT.md`](docs/RECIPE_FORMAT.md)：`.ucamera` 配方字段表与扩展方式。
+- [`docs/PUSH.md`](docs/PUSH.md)：推送远端与认证方式指南。
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)：产品定位、功能范围与原则。
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)：模块边界、状态流与目录说明。
 
