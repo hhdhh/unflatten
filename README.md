@@ -98,11 +98,26 @@ Web 不在 v0.1 范围。
 每个 PR 与 push 都会跑：
 
 - `flutter analyze`
-- `flutter test`（单元、Widget、视觉基线）
+- `flutter test`（单元、Widget、视觉基线、perf benchmark）
 - `cargo fmt --all -- --check`
 - `cargo test --workspace`
 
 矩阵覆盖 `ubuntu-latest` 与 `macos-latest`。
+
+## 真机构建预检
+
+第一次跑 `flutter build <platform>` 之前，先用预检脚本确认工具链：
+
+```bash
+./tool/verify-build.sh all         # 检查所有平台
+./tool/verify-build.sh ios         # 只检查 iOS
+./tool/verify-build.sh android     # 只检查 Android
+./tool/verify-build.sh macos       # 只检查 macOS
+./tool/verify-build.sh windows     # 只检查 Windows
+./tool/verify-build.sh linux       # 只检查 Linux
+```
+
+预检脚本会顺带跑 analyze + test 确认代码干净。
 
 ## 上手文档
 
