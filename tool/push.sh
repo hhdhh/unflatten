@@ -2,7 +2,7 @@
 # Unflatten Studio 远端 push 助手
 #
 # 用法：./tool/push.sh [owner] [repo]
-# 默认：DingXianghao/unflatten
+# 默认：hhdhh/unflatten
 #
 # 配套前置：
 # 1. ssh-keygen -t ed25519 -C "dingxianghao@users.noreply.github.com"
@@ -11,7 +11,7 @@
 
 set -eu
 
-OWNER="${1:-DingXianghao}"
+OWNER="${1:-hhdhh}"
 REPO="${2:-unflatten}"
 PLATFORM="${PLATFORM:-github}"
 URL="git@${PLATFORM}.com:${OWNER}/${REPO}.git"

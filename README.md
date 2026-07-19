@@ -122,6 +122,7 @@ Web 不在 v0.1 范围。
 ## 上手文档
 
 - [`docs/QUICKSTART.md`](docs/QUICKSTART.md)：克隆到运行 5 步。
+- [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)：**面向最终用户的使用指南**（导入图片 / 选相机 / 调参数 / 复制配方 / Seed 复现）。
 - [`docs/RECIPE_FORMAT.md`](docs/RECIPE_FORMAT.md)：`.ucamera` 配方字段表与扩展方式。
 - [`docs/PUSH.md`](docs/PUSH.md)：推送远端与认证方式指南。
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)：产品定位、功能范围与原则。

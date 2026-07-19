@@ -21,7 +21,7 @@ Unflatten Studio 当前在本地 git 仓库（`5afd39a` → `167259a` → `75743
 
 ```
 unflatten-studio/unflatten       # GitHub org
-DingXianghao/unflatten           # 个人
+hhdhh/unflatten           # 个人
 unflatten/unflatten              # Gitea / 自建
 ```
 
