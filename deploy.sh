@@ -3,9 +3,11 @@
 # Unflatten Studio — gh-pages 一键部署脚本
 #
 # 用法:
-#   ./deploy.sh              # 构建 WASM + push 到 gh-pages 分支
-#   ./deploy.sh --no-build   # 不重新构建, 直接 push 现有 build/web
-#   ./deploy.sh --dry-run    # 只 echo 不真 push
+#   ./deploy.sh                              # 构建 WASM + push gh-pages
+#   ./deploy.sh --no-build                   # 不重新构建
+#   ./deploy.sh --dry-run                    # 只 echo 不真 push
+#   CUSTOM_DOMAIN=unflatten.dpdns.org ./deploy.sh
+#       # 同时把 CNAME 文件放到 gh-pages 根 (用于 GitHub Pages custom domain)
 #
 # 首次使用: 在 https://github.com/hhdhh/unflatten/settings/pages
 #           Source = "Deploy from a branch", Branch = "gh-pages" / (root)
@@ -46,6 +48,7 @@ echo "=========================================="
 echo "Repo: $(git remote get-url $REMOTE 2>/dev/null || echo 'NO REMOTE')"
 echo "Branch: $BRANCH"
 echo "Build: $DO_BUILD"
+[ -n "${CUSTOM_DOMAIN:-}" ] && echo "Custom domain: $CUSTOM_DOMAIN"
 echo ""
 
 # 1) 构建 WASM
@@ -65,18 +68,22 @@ if [ ! -d "$BUILD_DIR" ]; then
   exit 1
 fi
 
-# 清空 staging（先确保 dir 存在）
 if [ ! -d "$STAGING" ]; then
   mkdir -p "$STAGING"
 fi
-# dry-run 模式下不要真删/真拷
 if [ "$DRY_RUN" = "0" ]; then
   find "$STAGING" -mindepth 1 -delete
   find "$BUILD_DIR" -mindepth 1 -maxdepth 1 -exec cp -R {} "$STAGING/" \;
   touch "$STAGING/.nojekyll"
+
+  # 3) 写 CNAME（如果设了 CUSTOM_DOMAIN）
+  if [ -n "${CUSTOM_DOMAIN:-}" ]; then
+    printf "%s\n" "$CUSTOM_DOMAIN" > "$STAGING/CNAME"
+    echo "▶ wrote CNAME: $CUSTOM_DOMAIN"
+  fi
 fi
 
-# 3) git 操作（dry-run 跳过）
+# 4) git 操作
 if [ "$DRY_RUN" = "0" ]; then
   cd "$STAGING"
   if [ ! -d ".git" ]; then
@@ -90,9 +97,10 @@ if [ "$DRY_RUN" = "0" ]; then
   cd "$REPO_ROOT"
 fi
 
-# 4) 完成
+# 5) 完成
 echo ""
 echo "=========================================="
 echo " ✓ pushed → $REMOTE/$BRANCH"
 echo "   公开 URL: https://hhdhh.github.io/unflatten/"
+[ -n "${CUSTOM_DOMAIN:-}" ] && echo "   Custom domain: https://$CUSTOM_DOMAIN/"
 echo "=========================================="

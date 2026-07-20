@@ -168,4 +168,13 @@ cd build/web && python3 -m http.server 8902
 
 ### 自定义域名 (DigitalPlat FreeDomain)
 
-注册一个 [FreeDomain](https://github.com/DigitalPlatDev/FreeDomain) 子域名（例如 `unflatten.dpdns.org`），加 CNAME 指向 `hhdhh.github.io` 即可。
+完整流程见 [docs/CUSTOM-DOMAIN.md](docs/CUSTOM-DOMAIN.md)。概要：
+
+```bash
+# 1) 去 https://dash.domain.digitalplat.org/ 注册 unflatten.dpdns.org
+# 2) Cloudflare 加 zone + 配 nameserver 回 DigitalPlat
+# 3) Cloudflare DNS: CNAME @ → hhdhh.github.io (DNS only)
+# 4) GitHub Pages settings → Custom domain = unflatten.dpdns.org
+# 5) 部署时带环境变量:
+CUSTOM_DOMAIN=unflatten.dpdns.org ./deploy.sh
+```
