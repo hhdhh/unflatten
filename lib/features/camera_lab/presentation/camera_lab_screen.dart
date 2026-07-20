@@ -385,7 +385,10 @@ class _WorkspaceHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(cameraLabProvider);
+    // 只订阅当前相机名：调滑块/Seed/Intensity 不重建。
+    final recipeName = ref.watch(
+      cameraLabProvider.select((s) => s.recipe.name),
+    );
     return SizedBox(
       height: 72,
       child: Padding(
@@ -398,7 +401,7 @@ class _WorkspaceHeader extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    state.recipe.name,
+                    recipeName,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 2),
@@ -420,7 +423,7 @@ class _WorkspaceHeader extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: onPickImage,
               icon: const Icon(Icons.folder_open_rounded, size: 18),
-              label: const Text('替换图像'),
+              label: const Text('打开图像'),
             ),
             const SizedBox(width: 10),
             FilledButton.icon(
@@ -588,7 +591,7 @@ class _PreviewStageState extends State<_PreviewStage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        '${(state.intensity * 100).round()}% · SEED ${state.seed.toRadixString(16).toUpperCase().padLeft(8, '0').substring(0, 8)}',
+                        '${(state.intensity * 100).round()}% · SEED ${state.seed.toRadixString(16).toUpperCase().padLeft(8, '0')}',
                         style: const TextStyle(
                           color: UnflattenColors.muted,
                           fontFamily: 'monospace',
@@ -651,21 +654,34 @@ class _RecipeStrip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 用 select 精确订阅：调滑块/Seed/Intensity 变化时不重画 6 张缩略图。
+    final visibleRecipes = ref.watch(
+      cameraLabProvider.select((s) => s.visibleRecipes),
+    );
+    final currentSelectedId = ref.watch(
+      cameraLabProvider.select((s) => s.selectedRecipeId),
+    );
+    final currentImageBytes = ref.watch(
+      cameraLabProvider.select((s) => s.image?.bytes),
+    );
+    final list = visibleRecipes;
+    final sel = currentSelectedId;
+    final img = currentImageBytes;
     return ListView.separated(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 14 : 22,
         vertical: compact ? 8 : 14,
       ),
-      itemCount: recipes.length,
+      itemCount: list.length,
       separatorBuilder: (_, _) => const SizedBox(width: 10),
       itemBuilder: (context, index) {
-        final recipe = recipes[index];
-        final selected = recipe.id == selectedId;
+        final recipe = list[index];
+        final selected = recipe.id == sel;
         return _RecipeCard(
           recipe: recipe,
           selected: selected,
-          imageBytes: imageBytes,
+          imageBytes: img,
           compact: compact,
           onTap: () =>
               ref.read(cameraLabProvider.notifier).selectRecipe(recipe),
@@ -829,7 +845,7 @@ class CameraInspector extends ConsumerWidget {
               border: Border.all(color: UnflattenColors.line),
             ),
             child: Text(
-              state.seed.toRadixString(16).toUpperCase().padLeft(16, '0'),
+              state.seed.toRadixString(16).toUpperCase().padLeft(8, '0'),
               style: const TextStyle(
                 fontFamily: 'monospace',
                 letterSpacing: 1.2,

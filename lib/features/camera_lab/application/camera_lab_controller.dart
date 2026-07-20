@@ -147,6 +147,7 @@ class CameraLabController extends Notifier<CameraLabState> {
 
   void resetTuning() {
     state = state.copyWith(
+      intensity: 0.86,
       seed: state.recipe.seed,
       tuning: CameraTuning.fromRecipe(state.recipe),
       protectedRegions: state.recipe.protect.toSet(),
