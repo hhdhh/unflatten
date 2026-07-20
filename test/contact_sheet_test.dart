@@ -16,7 +16,7 @@ void main() {
     await tester.tap(find.byKey(const Key('open-contact-sheet')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Camera Contact Sheet'), findsOneWidget);
+    expect(find.text('试拍表 · 24 机'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(Dialog),

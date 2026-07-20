@@ -50,6 +50,18 @@ abstract final class UnflattenTokens {
   static const info = Color(0xff72d9df);
   static const scrim = Color(0x99000000);
   static const shimmer = Color(0x14ffffff);
+  // v2 增补：用于 Editor sheet、Recipe 卡片、hover 等层次
+  static const surfaceElevated = Color(0xff18181c);
+  static const accentSoft = Color(0xfff0ffd0);
+  static const scrimBlur = Color(0x66000000);
+  static const recipeShadow = Color(0x33000000);
+  static const recipeShadowSelected = Color(0x66dfff66);
+  // 语义化间距
+  static const pageHorizontal = 24.0;
+  static const pageVertical = 22.0;
+  static const railWidth = 280.0;
+  static const inspectorWidth = 360.0;
+  static const headerHeight = 72.0;
   static const sp1 = 4.0;
   static const sp2 = 8.0;
   static const sp3 = 12.0;
@@ -97,6 +109,39 @@ abstract final class UnflattenColors {
   static const warn = UnflattenTokens.warn;
   static const danger = UnflattenTokens.danger;
   static const info = UnflattenTokens.info;
+  static const surfaceElevated = UnflattenTokens.surfaceElevated;
+  static const accentSoft = UnflattenTokens.accentSoft;
+  static const scrimBlur = UnflattenTokens.scrimBlur;
+  static const recipeShadow = UnflattenTokens.recipeShadow;
+  static const recipeShadowSelected = UnflattenTokens.recipeShadowSelected;
+}
+
+abstract final class UnflattenMotion {
+  UnflattenMotion._();
+  static const fast = Duration(milliseconds: 160);
+  static const normal = Duration(milliseconds: 220);
+  static const slow = Duration(milliseconds: 320);
+  static const pageTransition = Duration(milliseconds: 280);
+}
+
+abstract final class UnflattenEffects {
+  UnflattenEffects._();
+  static const recipeShadow = <BoxShadow>[
+    BoxShadow(
+      color: UnflattenTokens.recipeShadow,
+      blurRadius: 24,
+      spreadRadius: -6,
+      offset: Offset(0, 8),
+    ),
+  ];
+  static const recipeShadowSelected = <BoxShadow>[
+    BoxShadow(
+      color: UnflattenTokens.recipeShadowSelected,
+      blurRadius: 26,
+      spreadRadius: -4,
+      offset: Offset(0, 10),
+    ),
+  ];
 }
 
 abstract final class UnflattenTypography {
