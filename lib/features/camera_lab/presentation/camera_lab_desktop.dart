@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/unflatten_theme.dart';
 import '../application/camera_lab_controller.dart';
-import 'widgets/camera_lab_brand.dart';
+import 'widgets/camera_lab_side_nav.dart';
 import '../domain/camera_recipe.dart';
 import 'widgets/camera_preview.dart';
 import 'widgets/camera_lab_inspector.dart';
@@ -50,8 +50,8 @@ class CameraLabDesktop extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const CameraLabBrandMark(),
-                  const SizedBox(height: 36),
+                  const CameraLabSideNav(),
+                  const SizedBox(height: 28),
                   Text(
                     'CAMERA PACKS',
                     style: Theme.of(context).textTheme.labelSmall,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:file_selector/file_selector.dart';
@@ -197,7 +198,48 @@ class _ContactSheet extends ConsumerStatefulWidget {
 
 class _ContactSheetState extends ConsumerState<_ContactSheet> {
   bool _fullRender = true;
+  bool _compareMode = false;
+  CameraRecipe? _compareA;
+  CameraRecipe? _compareB;
 
+  void _toggleCompare(CameraRecipe r) {
+    setState(() {
+      if (_compareA?.id == r.id) {
+        _compareA = null;
+      } else if (_compareB?.id == r.id) {
+        _compareB = null;
+      } else if (_compareA == null) {
+        _compareA = r;
+      } else if (_compareB == null) {
+        _compareB = r;
+      } else {
+        _compareA = _compareB;
+        _compareB = r;
+      }
+      if (_compareA != null &&
+          _compareB != null &&
+          _compareA?.id == _compareB?.id) {
+        // ensure A/B differ
+        _compareB = null;
+      }
+    });
+  }
+
+  void _maybeOpenCompare() {
+    if (_compareA != null && _compareB != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final a = _compareA!;
+        final b = _compareB!;
+        showDialog<void>(
+          context: context,
+          barrierColor: UnflattenTokens.scrimBlur,
+          builder: (_) =>
+              _RecipeCompareDialog(left: a, right: b),
+        );
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(cameraLabProvider);
@@ -256,6 +298,17 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 4),
+                  _CompareModeToggle(
+                    active: _compareMode,
+                    onChanged: (v) => setState(() {
+                      _compareMode = v;
+                      if (!v) {
+                        _compareA = null;
+                        _compareB = null;
+                      }
+                    }),
+                  ),
                   IconButton(
                     onPressed: Navigator.of(context).pop,
                     icon: const Icon(Icons.close_rounded),
@@ -286,13 +339,25 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
                       final recipe = cameraCatalog[index];
                       final accent = packAccentColor(recipe.pack);
                       final isCurrent = state.recipe.id == recipe.id;
+                      final slot = _compareA?.id == recipe.id
+                          ? 'A'
+                          : (_compareB?.id == recipe.id
+                              ? 'B'
+                              : null);
                       return _ContactSheetCell(
                         recipe: recipe,
                         accent: accent,
                         imageBytes: state.image?.bytes,
                         liteMode: !_fullRender,
                         selected: isCurrent,
+                        compareMode: _compareMode,
+                        compareSlot: slot,
                         onTap: () {
+                          if (_compareMode) {
+                            _toggleCompare(recipe);
+                            _maybeOpenCompare();
+                            return;
+                          }
                           ref
                               .read(cameraLabProvider.notifier)
                               .selectRecipe(recipe);
@@ -319,6 +384,8 @@ class _ContactSheetCell extends StatefulWidget {
     required this.liteMode,
     required this.selected,
     required this.onTap,
+    this.compareMode = false,
+    this.compareSlot,
   });
 
   final CameraRecipe recipe;
@@ -327,6 +394,8 @@ class _ContactSheetCell extends StatefulWidget {
   final bool liteMode;
   final bool selected;
   final VoidCallback onTap;
+  final bool compareMode;
+  final String? compareSlot;
 
   @override
   State<_ContactSheetCell> createState() => _ContactSheetCellState();
@@ -379,6 +448,13 @@ class _ContactSheetCellState extends State<_ContactSheetCell> {
                 borderRadius: BorderRadius.circular(14),
                 child: Stack(
                   children: [
+                    // v5: compare-mode badge (A / B / +)
+                    if (widget.compareMode)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _CompareSlotBadge(slot: widget.compareSlot),
+                      ),
                     Padding(
                       padding: const EdgeInsets.all(8),
                       child: Column(
@@ -502,3 +578,588 @@ class _ContactSheetCellState extends State<_ContactSheetCell> {
   }
 }
 
+
+// =============================================================
+// v5: 对比模式 + Side-by-Side Recipe Compare
+// =============================================================
+
+class _CompareModeToggle extends StatelessWidget {
+  const _CompareModeToggle({
+    required this.active,
+    required this.onChanged,
+  });
+
+  final bool active;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: active
+          ? '退出对比模式'
+          : '进入对比模式 — 选 2 台相机自动弹出对比',
+      child: GestureDetector(
+        onTap: () => onChanged(!active),
+        child: AnimatedContainer(
+          duration: UnflattenMotion.fast,
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: active
+                ? UnflattenTokens.accentDim
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: active
+                  ? UnflattenTokens.acid
+                  : UnflattenTokens.hairline,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.compare_arrows_rounded,
+                size: 13,
+                color: active
+                    ? UnflattenTokens.acid
+                    : UnflattenColors.fg,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                active ? '对比中' : '对比',
+                style: TextStyle(
+                  color: active
+                      ? UnflattenTokens.acid
+                      : UnflattenColors.fg,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompareSlotBadge extends StatelessWidget {
+  const _CompareSlotBadge({required this.slot});
+
+  final String? slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = slot == null;
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: empty
+            ? UnflattenTokens.surface.withValues(alpha: 0.86)
+            : (slot == 'A'
+                ? UnflattenTokens.cyan.withValues(alpha: 0.92)
+                : UnflattenTokens.coral.withValues(alpha: 0.92)),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: empty
+              ? UnflattenTokens.hairline
+              : Colors.white.withValues(alpha: 0.18),
+        ),
+        boxShadow: empty
+            ? const <BoxShadow>[]
+            : [
+                BoxShadow(
+                  color: (slot == 'A'
+                          ? UnflattenTokens.cyan
+                          : UnflattenTokens.coral)
+                      .withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        empty ? '+' : slot!,
+        style: TextStyle(
+          color: empty ? UnflattenColors.fgMuted : const Color(0xff0a0a0c),
+          fontWeight: FontWeight.w800,
+          fontSize: empty ? 14 : 12,
+        ),
+      ),
+    );
+  }
+}
+
+/// Side-by-Side Recipe Compare Dialog
+/// 同图，左右分屏，2 个 5 轴 DNA 雷达叠加在中间
+class _RecipeCompareDialog extends StatelessWidget {
+  const _RecipeCompareDialog({required this.left, required this.right});
+
+  final CameraRecipe left;
+  final CameraRecipe right;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: UnflattenTokens.canvas,
+      insetPadding: const EdgeInsets.all(24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: 1280,
+          maxHeight: 820,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 顶部 header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 18, 18, 14),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.compare_arrows_rounded,
+                    size: 18,
+                    color: UnflattenTokens.acid,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '配方对比 · Side-by-Side',
+                    style: const TextStyle(
+                      color: UnflattenColors.fg,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '同一图 × 2 台相机',
+                    style: TextStyle(
+                      color: UnflattenColors.fgMuted.withValues(alpha: 0.72),
+                      fontSize: 12.5,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: Navigator.of(context).pop,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    tooltip: '关闭',
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: LayoutBuilder(builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                final useColumn = !wide;
+                final leftFrame = _ComparePane(
+                  recipe: left,
+                  position: 'A',
+                  accent: packAccentColor(left.pack),
+                );
+                final rightFrame = _ComparePane(
+                  recipe: right,
+                  position: 'B',
+                  accent: packAccentColor(right.pack),
+                );
+                if (useColumn) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        leftFrame,
+                        const SizedBox(height: 12),
+                        rightFrame,
+                        const SizedBox(height: 12),
+                        _CompareDnaOverlay(left: left, right: right),
+                      ],
+                    ),
+                  );
+                }
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: leftFrame),
+                            const SizedBox(width: 12),
+                            Expanded(child: rightFrame),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 200,
+                        child: _CompareDnaOverlay(left: left, right: right),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComparePane extends StatelessWidget {
+  const _ComparePane({
+    required this.recipe,
+    required this.position,
+    required this.accent,
+  });
+
+  final CameraRecipe recipe;
+  final String position;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xff08080a),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.55),
+          width: 1.4,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // A/B header
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                border: Border(
+                  bottom: BorderSide(
+                      color: accent.withValues(alpha: 0.32), width: 1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      position,
+                      style: const TextStyle(
+                        color: Color(0xff0a0a0c),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    recipe.name,
+                    style: const TextStyle(
+                      color: UnflattenColors.fg,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    recipe.pack.label.toUpperCase(),
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.6,
+                      fontFamily: 'JetBrains Mono',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '#${recipe.seed.toRadixString(16).toUpperCase().padLeft(8, '0').substring(0, 6)}',
+                    style: TextStyle(
+                      color: UnflattenColors.fgMuted.withValues(alpha: 0.7),
+                      fontSize: 10,
+                      fontFamily: 'JetBrains Mono',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 4 / 5,
+                child: CameraPreview(
+                  recipe: recipe,
+                  tuning: CameraTuning.fromRecipe(recipe),
+                  intensity: 0.92,
+                  seed: recipe.seed,
+                  borderRadius: 0,
+                  showOverlay: true,
+                  liteMode: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 把 2 个 DNA 五边形画在同一个 canvas 上，叠加对比
+class _CompareDnaOverlay extends StatelessWidget {
+  const _CompareDnaOverlay({required this.left, required this.right});
+
+  final CameraRecipe left;
+  final CameraRecipe right;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xff08080a),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: UnflattenTokens.hairlineStrong),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'CAMERA DNA OVERLAY',
+                style: TextStyle(
+                  color: UnflattenTokens.acid,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.2,
+                  fontFamily: 'JetBrains Mono',
+                ),
+              ),
+              const SizedBox(width: 16),
+              _Legend(
+                  color: packAccentColor(left.pack), label: 'A · ${left.name}'),
+              const SizedBox(width: 16),
+              _Legend(
+                  color: packAccentColor(right.pack),
+                  label: 'B · ${right.name}'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: LayoutBuilder(builder: (context, c) {
+              final dim = c.biggest.shortestSide;
+              return SizedBox(
+                width: dim,
+                height: dim,
+                child: CustomPaint(
+                  painter: _DnaOverlayPainter(
+                    left: _dnaValues(left),
+                    right: _dnaValues(right),
+                    leftColor: packAccentColor(left.pack),
+                    rightColor: packAccentColor(right.pack),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static List<double> _dnaValues(CameraRecipe r) => [
+        r.medium.saturation.clamp(0.0, 1.0),
+        r.medium.grain.clamp(0.0, 1.0),
+        r.lens.vignette.clamp(0.0, 1.0),
+        r.lens.chromaticAberration.clamp(0.0, 1.0),
+        ((r.medium.warmth + 1) / 2).clamp(0.0, 1.0),
+      ];
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend({required this.color, required this.label});
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: UnflattenColors.fg,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DnaOverlayPainter extends CustomPainter {
+  _DnaOverlayPainter({
+    required this.left,
+    required this.right,
+    required this.leftColor,
+    required this.rightColor,
+  });
+
+  final List<double> left;
+  final List<double> right;
+  final Color leftColor;
+  final Color rightColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 - 8;
+    final n = left.length;
+    const stroke = Color(0x22ffffff);
+
+    for (var ring = 1; ring <= 4; ring++) {
+      final r = radius * (ring / 4);
+      final path = Path();
+      for (var i = 0; i < n; i++) {
+        final angle = -math.pi / 2 + 2 * math.pi * i / n;
+        final p = center + Offset(math.cos(angle), math.sin(angle)) * r;
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      path.close();
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = stroke
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.7,
+      );
+    }
+
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final end = center + Offset(math.cos(angle), math.sin(angle)) * radius;
+      canvas.drawLine(
+        center,
+        end,
+        Paint()
+          ..color = stroke
+          ..strokeWidth = 0.5,
+      );
+    }
+
+    // 左
+    final lPath = Path();
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final r = radius * left[i];
+      final p = center + Offset(math.cos(angle), math.sin(angle)) * r;
+      if (i == 0) {
+        lPath.moveTo(p.dx, p.dy);
+      } else {
+        lPath.lineTo(p.dx, p.dy);
+      }
+    }
+    lPath.close();
+    canvas.drawPath(
+      lPath,
+      Paint()..color = leftColor.withValues(alpha: 0.16),
+    );
+    canvas.drawPath(
+      lPath,
+      Paint()
+        ..color = leftColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+
+    // 右
+    final rPath = Path();
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final r = radius * right[i];
+      final p = center + Offset(math.cos(angle), math.sin(angle)) * r;
+      if (i == 0) {
+        rPath.moveTo(p.dx, p.dy);
+      } else {
+        rPath.lineTo(p.dx, p.dy);
+      }
+    }
+    rPath.close();
+    canvas.drawPath(
+      rPath,
+      Paint()..color = rightColor.withValues(alpha: 0.16),
+    );
+    canvas.drawPath(
+      rPath,
+      Paint()
+        ..color = rightColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+
+    // labels
+    const labels = ['饱和', '颗粒', '暗角', '色差', '暖度'];
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final p = center +
+          Offset(math.cos(angle), math.sin(angle)) * (radius + 12);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: labels[i],
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.74),
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+        canvas,
+        p - Offset(tp.width / 2, tp.height / 2),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DnaOverlayPainter old) =>
+      old.left != left || old.right != right;
+}
