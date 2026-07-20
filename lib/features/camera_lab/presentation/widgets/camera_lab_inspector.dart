@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/unflatten_theme.dart';
 import '../../application/camera_lab_controller.dart';
 import '../../domain/camera_recipe.dart';
+import 'camera_lab_brand.dart';
 
 class CameraLabSectionLabel extends StatelessWidget {
   const CameraLabSectionLabel({
@@ -421,6 +424,34 @@ class CameraLabInspector extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 22),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CameraLabSectionLabel(label: '相机指纹 · 5 轴'),
+                    const SizedBox(height: 8),
+                    CameraLabDnaRadar(
+                      recipe: state.recipe,
+                      intensity: state.intensity,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      state.recipe.description,
+                      style: const TextStyle(
+                        color: UnflattenColors.fgMuted,
+                        fontSize: 12.5,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
           CameraLabSectionLabel(
             label: '滤镜强度',
             value: '${(state.intensity * 100).round()}%',
@@ -552,3 +583,168 @@ double _valueFor(CameraTuning tuning, TuningParameter parameter) =>
       TuningParameter.bloom => tuning.bloom,
       TuningParameter.flash => tuning.flash,
     };
+
+// =============================================================
+// v4: Camera DNA 5 轴雷达图（差异化亮点）。
+// 5 轴：饱和度 / 颗粒 / 暗角 / 色差 / 暖度。
+// =============================================================
+class CameraLabDnaRadar extends StatelessWidget {
+  const CameraLabDnaRadar({
+    super.key,
+    required this.recipe,
+    required this.intensity,
+    this.size = 180,
+  });
+
+  final CameraRecipe recipe;
+  final double intensity;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = packAccentColor(recipe.pack);
+    // 5 轴值（0~1）—— 静态 formula，不读 controller
+    final saturation = recipe.medium.saturation.clamp(0.0, 1.0);
+    final grain = recipe.medium.grain.clamp(0.0, 1.0);
+    final vignette = recipe.lens.vignette.clamp(0.0, 1.0);
+    final chromatic = recipe.lens.chromaticAberration.clamp(0.0, 1.0);
+    final warmth = ((recipe.medium.warmth + 1) / 2).clamp(0.0, 1.0);
+    final values = <double>[
+      saturation,
+      grain,
+      vignette,
+      chromatic,
+      warmth,
+    ].map((v) => (0.35 + v * 0.65 * intensity).clamp(0.0, 1.0)).toList();
+    final labels = const ['饱和', '颗粒', '暗角', '色差', '暖度'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+            painter: _DnaRadarPainter(
+              values: values,
+              accent: accent,
+              stroke: Colors.white.withValues(alpha: 0.14),
+              fill: accent.withValues(alpha: 0.16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 6,
+          children: List.generate(5, (i) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '${labels[i]} ${(values[i] * 100).round()}',
+                  style: const TextStyle(
+                    color: UnflattenColors.fgMuted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class _DnaRadarPainter extends CustomPainter {
+  _DnaRadarPainter({
+    required this.values,
+    required this.accent,
+    required this.stroke,
+    required this.fill,
+  });
+
+  final List<double> values;
+  final Color accent;
+  final Color stroke;
+  final Color fill;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 - 4;
+    final n = values.length;
+    // 五边形（pentagon）轴线
+    for (var ring = 1; ring <= 4; ring++) {
+      final r = radius * (ring / 4);
+      final path = Path();
+      for (var i = 0; i < n; i++) {
+        final angle = -math.pi / 2 + 2 * math.pi * i / n;
+        final p = center + Offset(math.cos(angle), math.sin(angle)) * r;
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      path.close();
+      final ringPaint = Paint()
+        ..color = stroke
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8;
+      canvas.drawPath(path, ringPaint);
+    }
+    // 5 条轴线
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final end = center + Offset(math.cos(angle), math.sin(angle)) * radius;
+      final axisPaint = Paint()
+        ..color = stroke
+        ..strokeWidth = 0.6;
+      canvas.drawLine(center, end, axisPaint);
+    }
+    // 数据 polygon
+    final dataPath = Path();
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final r = radius * values[i];
+      final p = center + Offset(math.cos(angle), math.sin(angle)) * r;
+      if (i == 0) {
+        dataPath.moveTo(p.dx, p.dy);
+      } else {
+        dataPath.lineTo(p.dx, p.dy);
+      }
+    }
+    dataPath.close();
+    final fillPaint = Paint()..color = fill;
+    canvas.drawPath(dataPath, fillPaint);
+    final strokePaint = Paint()
+      ..color = accent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    canvas.drawPath(dataPath, strokePaint);
+    // 顶点圆点
+    for (var i = 0; i < n; i++) {
+      final angle = -math.pi / 2 + 2 * math.pi * i / n;
+      final r = radius * values[i];
+      final p = center + Offset(math.cos(angle), math.sin(angle)) * r;
+      canvas.drawCircle(p, 2.2, Paint()..color = accent);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DnaRadarPainter old) =>
+      old.values != values || old.accent != accent;
+}

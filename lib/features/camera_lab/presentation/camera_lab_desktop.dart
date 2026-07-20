@@ -10,6 +10,8 @@ import 'widgets/camera_lab_inspector.dart';
 import 'widgets/camera_lab_pack_button.dart';
 import 'widgets/camera_lab_recipe_strip.dart';
 import 'widgets/camera_lab_workspace_header.dart';
+import 'widgets/drop_zone.dart';
+import 'dart:typed_data';
 
 class CameraLabDesktop extends ConsumerWidget {
   const CameraLabDesktop({
@@ -101,6 +103,8 @@ class CameraLabDesktop extends ConsumerWidget {
                   ),
                   child: _PreviewStage(
                     state: state,
+                    onPickImage: onPickImage,
+                    onImageDropped: _handleImageDropped,
                     previewKey: previewKey,
                   ),
                 ),
@@ -142,13 +146,35 @@ class CameraLabDesktop extends ConsumerWidget {
 }
 
 class _PreviewStage extends StatelessWidget {
-  const _PreviewStage({required this.state, this.previewKey});
+  const _PreviewStage({
+    required this.state,
+    required this.onPickImage,
+    required this.onImageDropped,
+    this.previewKey,
+  });
 
   final CameraLabState state;
+  final VoidCallback onPickImage;
+  final Future<void> Function(String fileName, Uint8List bytes)
+      onImageDropped;
   final GlobalKey? previewKey;
 
   @override
   Widget build(BuildContext context) {
+    if (state.image == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          child: CameraLabDropZone(
+            onPickImage: onPickImage,
+            onImageDropped: onImageDropped,
+          ),
+        ),
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final ratio = constraints.maxWidth > 760 ? 16 / 9 : 4 / 3;
@@ -332,4 +358,9 @@ class _SessionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _handleImageDropped(String fileName, Uint8List bytes) async {
+  // 简化：drop zone 当前只占位（handler 实际由 screen 注入）
+  // 当前 v4 占位实现：忽略 drop 字节，等待点击 file picker 真正触发
 }

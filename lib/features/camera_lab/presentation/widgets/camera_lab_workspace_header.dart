@@ -50,7 +50,7 @@ class CameraLabWorkspaceHeader extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Text(
                           headerState.$1,
                           maxLines: 1,
@@ -62,17 +62,6 @@ class CameraLabWorkspaceHeader extends ConsumerWidget {
                             color: UnflattenColors.fg,
                             height: 1.1,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'RECIPE',
-                        style: TextStyle(
-                          color: UnflattenColors.fgSubtle,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.4,
-                          height: 1.2,
                         ),
                       ),
                     ],
@@ -93,39 +82,94 @@ class CameraLabWorkspaceHeader extends ConsumerWidget {
               ),
             ),
             if (!compact) ...[
+              // 导入按钮：宽屏显示文字+图标，<1280 只显示图标（避免 overflow）
+              Builder(builder: (context) {
+                final wide = MediaQuery.sizeOf(context).width >= 1280;
+                if (wide) {
+                  return OutlinedButton.icon(
+                    key: const Key('open-image-picker'),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      onPickImage();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: UnflattenColors.fg,
+                      side: const BorderSide(color: UnflattenColors.line),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 7),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.1,
+                        fontSize: 11,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.upload_rounded, size: 14),
+                    label: const Text('导入图像'),
+                  );
+                }
+                return IconButton.outlined(
+                  key: const Key('open-image-picker'),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    onPickImage();
+                  },
+                  tooltip: '导入图像',
+                  icon: const Icon(Icons.upload_rounded, size: 16),
+                  visualDensity: VisualDensity.compact,
+                );
+              }),
+              const SizedBox(width: 2),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 onPressed: headerState.$2 ? controller.undo : null,
                 tooltip: '撤销 · ⌘/Ctrl Z',
-                icon: const Icon(Icons.undo_rounded, size: 17),
+                icon: const Icon(Icons.undo_rounded, size: 16),
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 onPressed: headerState.$3 ? controller.redo : null,
                 tooltip: '重做 · ⇧⌘Z / Ctrl Y',
-                icon: const Icon(Icons.redo_rounded, size: 17),
+                icon: const Icon(Icons.redo_rounded, size: 16),
               ),
-            ],
-            if (compact)
-              TextButton(
-                key: const Key('open-contact-sheet'),
-                onPressed: onOpenContactSheet,
-                style: TextButton.styleFrom(
-                  foregroundColor: UnflattenColors.fg,
-                  textStyle: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                child: const Text('试拍表'),
-              )
-            else
+              const SizedBox(width: 2),
               IconButton.outlined(
                 key: const Key('open-contact-sheet'),
                 visualDensity: VisualDensity.compact,
                 onPressed: onOpenContactSheet,
                 tooltip: '试拍表',
                 icon: const Icon(Icons.grid_view_rounded, size: 16),
+              ),
+            ] else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton.outlined(
+                    key: const Key('open-image-picker'),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      onPickImage();
+                    },
+                    tooltip: '导入图像',
+                    icon: const Icon(Icons.upload_rounded, size: 16),
+                  ),
+                  const SizedBox(width: 4),
+                  TextButton(
+                    key: const Key('open-contact-sheet'),
+                    onPressed: onOpenContactSheet,
+                    style: TextButton.styleFrom(
+                      foregroundColor: UnflattenColors.fg,
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    child: const Text('试拍表'),
+                  ),
+                ],
               ),
             const SizedBox(width: 6),
             if (compact)

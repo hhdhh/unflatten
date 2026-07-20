@@ -267,6 +267,7 @@ class _MobileActionBar extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
+              flex: 5,
               child: OutlinedButton.icon(
                 onPressed: onPickImage,
                 icon: const Icon(Icons.image_outlined, size: 18),
@@ -285,8 +286,9 @@ class _MobileActionBar extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
+              flex: 5,
               child: OutlinedButton.icon(
                 onPressed: () {
                   HapticFeedback.selectionClick();
