@@ -21,7 +21,7 @@ Future<Duration> _measureContactSheetFirstFrame(
   await tester.pumpAndSettle();
 
   final stopwatch = Stopwatch()..start();
-  await tester.tap(find.text('试拍表'));
+  await tester.tap(find.byKey(const Key('open-contact-sheet')));
   await tester.pumpAndSettle();
 
   if (liteMode) {
@@ -38,6 +38,7 @@ Future<Duration> _measureContactSheetFirstFrame(
 
 void main() {
   testWidgets('量度全实时模式首帧耗时', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     _fullDuration = await _measureContactSheetFirstFrame(
       tester,
       liteMode: false,
@@ -47,6 +48,7 @@ void main() {
   });
 
   testWidgets('量度 lite 模式首帧耗时', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     _liteDuration = await _measureContactSheetFirstFrame(
       tester,
       liteMode: true,
@@ -67,13 +69,13 @@ void main() {
     );
   });
 
-  testWidgets('lite 模式下 24 个 CameraPreview 都开启 lite 标志',
-      (tester) async {
+  testWidgets('lite 模式下 24 个 CameraPreview 都开启 lite 标志', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1100, 820));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('试拍表'));
+    await tester.tap(find.byKey(const Key('open-contact-sheet')));
     await tester.pumpAndSettle();
 
     final switchFinder = find.descendant(

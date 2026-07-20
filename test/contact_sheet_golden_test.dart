@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('试拍表'));
+    await tester.tap(find.byKey(const Key('open-contact-sheet')));
     await tester.pumpAndSettle();
 
     final switchFinder = find.descendant(
@@ -34,7 +34,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('试拍表'));
+    await tester.tap(find.byKey(const Key('open-contact-sheet')));
     await tester.pumpAndSettle();
 
     await expectLater(

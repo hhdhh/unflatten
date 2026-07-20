@@ -28,5 +28,36 @@ void main() {
     expect(find.text('CAMERA PACKS'), findsOneWidget);
     expect(find.text('CAMERA DNA'), findsOneWidget);
     expect(find.text('复制配方'), findsOneWidget);
+    expect(find.byKey(const Key('seed-input')), findsOneWidget);
+    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+  });
+
+  testWidgets('响应式断点附近不发生布局溢出', (tester) async {
+    for (final size in const [
+      Size(1100, 760),
+      Size(1099, 760),
+      Size(700, 760),
+      Size(360, 780),
+    ]) {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '窗口尺寸：$size');
+    }
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+  });
+
+  testWidgets('Seed 输入支持十六进制提交', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('seed-input')), '00ABCDEF');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('SEED 00ABCDEF'), findsOneWidget);
   });
 }

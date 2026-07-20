@@ -13,14 +13,16 @@ Unflatten Studio 是一款开源、本地优先、跨平台的语义图像创作
 
 ## 当前能力
 
-- iOS、Android、macOS、Windows、Linux 五平台 Flutter 工程。
+- Web、iOS、Android、macOS、Windows、Linux 共用一套 Flutter 工程。
 - Analog、Y2K Digicam、Optical、Mobile Eras 四个相机包。
 - 24 台内置虚拟相机。
 - Camera Contact Sheet 试拍表。
 - 曝光、对比、饱和、冷暖、颗粒、暗角、Bloom 和闪光调校。
-- 固定 Seed 的可复现缺陷签名。
+- 可手动编辑 Hex Seed 的可复现缺陷签名。
 - 本地图像导入。
 - 移动端与电脑端自适应工作区。
+- 最多 32 步撤销/重做，滑块一次拖动只生成一个历史步骤。
+- PNG 导出：Web 直接下载、桌面系统保存、移动端系统分享。
 - `.ucamera` JSON 复制与开放格式模型。
 - Rust 配方校验与确定性解析核心。
 
@@ -49,6 +51,9 @@ test/                          单元、Widget 与视觉基线测试
 ./tool/flutterw analyze
 ./tool/flutterw test
 ./tool/flutterw run
+
+# 浏览器试用
+./tool/serve-web.sh
 
 ./tool/cargow fmt --all
 ./tool/cargow test --workspace
@@ -90,8 +95,7 @@ FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
 | Linux | 桌面端，工程模板就绪 |
 | iOS | 工程模板就绪，需 Xcode 全量安装 |
 | Android | 工程模板就绪，需 Android SDK |
-
-Web 不在 v0.1 范围。
+| Web | 已验证，可直接本地运行与导出 PNG |
 
 ## 持续集成
 
@@ -122,7 +126,7 @@ Web 不在 v0.1 范围。
 ## 上手文档
 
 - [`docs/QUICKSTART.md`](docs/QUICKSTART.md)：克隆到运行 5 步。
-- [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)：**面向最终用户的使用指南**（导入图片 / 选相机 / 调参数 / 复制配方 / Seed 复现）。
+- [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)：**面向最终用户的使用指南**（导入图片 / 选相机 / 调参数 / 撤销 / 导出 / Seed 复现）。
 - [`docs/RECIPE_FORMAT.md`](docs/RECIPE_FORMAT.md)：`.ucamera` 配方字段表与扩展方式。
 - [`docs/PUSH.md`](docs/PUSH.md)：推送远端与认证方式指南。
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)：产品定位、功能范围与原则。
@@ -135,4 +139,3 @@ Web 不在 v0.1 范围。
 ## 致谢
 
 Camera DNA 五模块设计的灵感来自银盐胶片、CCD 数码相机与现代手机摄影的视觉语言，但本仓库刻意避免使用真实品牌、相机或胶片型号的名称。所有 24 台内置相机都是化名配方。
-

@@ -13,7 +13,7 @@
 ## 1. 克隆
 
 ```bash
-git clone https://github.com/unflatten-studio/unflatten.git
+git clone https://github.com/hhdhh/unflatten.git
 cd unflatten
 ```
 
@@ -43,7 +43,7 @@ PUB_HOSTED_URL=https://pub.flutter-io.cn \
 
 ```
 flutter analyze    No issues found!
-flutter test       All tests passed! (6)
+flutter test       All tests passed!
 cargo test         4 passed
 ```
 
@@ -61,6 +61,9 @@ cargo test         4 passed
 
 # Android 模拟器或真机
 ./tool/flutterw run -d android
+
+# Web 本地试用（构建后启动 http://localhost:8765）
+./tool/serve-web.sh
 ```
 
 应用启动后默认进入 `Camera Lab`。导入一张图片，挑一台相机，调节参数，看效果。

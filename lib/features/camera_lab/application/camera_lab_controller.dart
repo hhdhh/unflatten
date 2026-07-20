@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unflatten_studio/features/camera_lab/data/camera_catalog.dart';
 import 'package:unflatten_studio/features/camera_lab/domain/camera_recipe.dart';
@@ -36,6 +35,8 @@ class CameraLabState {
     required this.seed,
     required this.tuning,
     required this.protectedRegions,
+    this.canUndo = false,
+    this.canRedo = false,
     this.image,
   });
 
@@ -57,6 +58,8 @@ class CameraLabState {
   final int seed;
   final CameraTuning tuning;
   final Set<SemanticRegion> protectedRegions;
+  final bool canUndo;
+  final bool canRedo;
   final ImportedImage? image;
 
   CameraRecipe get recipe => cameraCatalog.firstWhere(
@@ -75,6 +78,8 @@ class CameraLabState {
     int? seed,
     CameraTuning? tuning,
     Set<SemanticRegion>? protectedRegions,
+    bool? canUndo,
+    bool? canRedo,
     ImportedImage? image,
     bool clearImage = false,
   }) => CameraLabState(
@@ -84,50 +89,93 @@ class CameraLabState {
     seed: seed ?? this.seed,
     tuning: tuning ?? this.tuning,
     protectedRegions: protectedRegions ?? this.protectedRegions,
+    canUndo: canUndo ?? this.canUndo,
+    canRedo: canRedo ?? this.canRedo,
     image: clearImage ? null : image ?? this.image,
   );
 }
 
 class CameraLabController extends Notifier<CameraLabState> {
+  static const maxHistoryEntries = 32;
+
+  final List<CameraLabState> _undoStack = [];
+  final List<CameraLabState> _redoStack = [];
+  CameraLabState? _transactionStart;
+  bool _transactionChanged = false;
+
   @override
   CameraLabState build() => CameraLabState.initial();
+
+  void beginHistoryTransaction() {
+    if (_transactionStart != null) return;
+    _transactionStart = _snapshot(state);
+    _transactionChanged = false;
+  }
+
+  void endHistoryTransaction() {
+    final start = _transactionStart;
+    _transactionStart = null;
+    if (start != null && _transactionChanged && !_sameContent(start, state)) {
+      _pushBounded(_undoStack, start);
+    }
+    _transactionChanged = false;
+    state = _withHistoryFlags(state);
+  }
+
+  void undo() {
+    _finishActiveTransaction();
+    if (_undoStack.isEmpty) return;
+    _pushBounded(_redoStack, _snapshot(state));
+    state = _withHistoryFlags(_undoStack.removeLast());
+  }
+
+  void redo() {
+    _finishActiveTransaction();
+    if (_redoStack.isEmpty) return;
+    _pushBounded(_undoStack, _snapshot(state));
+    state = _withHistoryFlags(_redoStack.removeLast());
+  }
 
   void selectPack(CameraPack pack) {
     final recipe = cameraCatalog.firstWhere(
       (candidate) => candidate.pack == pack,
     );
-    state = state.copyWith(
-      selectedPack: pack,
-      selectedRecipeId: recipe.id,
-      seed: recipe.seed,
-      tuning: CameraTuning.fromRecipe(recipe),
-      protectedRegions: recipe.protect.toSet(),
+    _commit(
+      state.copyWith(
+        selectedPack: pack,
+        selectedRecipeId: recipe.id,
+        seed: recipe.seed,
+        tuning: CameraTuning.fromRecipe(recipe),
+        protectedRegions: recipe.protect.toSet(),
+      ),
     );
   }
 
   void selectRecipe(CameraRecipe recipe) {
-    state = state.copyWith(
-      selectedPack: recipe.pack,
-      selectedRecipeId: recipe.id,
-      seed: recipe.seed,
-      tuning: CameraTuning.fromRecipe(recipe),
-      protectedRegions: recipe.protect.toSet(),
+    _commit(
+      state.copyWith(
+        selectedPack: recipe.pack,
+        selectedRecipeId: recipe.id,
+        seed: recipe.seed,
+        tuning: CameraTuning.fromRecipe(recipe),
+        protectedRegions: recipe.protect.toSet(),
+      ),
     );
   }
 
   void setIntensity(double value) {
-    state = state.copyWith(intensity: value.clamp(0, 1).toDouble());
+    _commit(state.copyWith(intensity: value.clamp(0, 1).toDouble()));
   }
 
   void setSeed(int value) {
-    state = state.copyWith(seed: value & 0x7fffffff);
+    _commit(state.copyWith(seed: value & 0x7fffffff));
   }
 
   void randomizeSeed() {
     final random = SplitMix64(
       state.seed ^ DateTime.now().microsecondsSinceEpoch,
     );
-    state = state.copyWith(seed: random.nextUint64().toInt() & 0x7fffffff);
+    _commit(state.copyWith(seed: random.nextUint64().toInt() & 0x7fffffff));
   }
 
   void setTuning(TuningParameter parameter, double value) {
@@ -142,15 +190,17 @@ class CameraLabController extends Notifier<CameraLabState> {
       TuningParameter.bloom => state.tuning.copyWith(bloom: clamped),
       TuningParameter.flash => state.tuning.copyWith(flash: clamped),
     };
-    state = state.copyWith(tuning: tuning);
+    _commit(state.copyWith(tuning: tuning));
   }
 
   void resetTuning() {
-    state = state.copyWith(
-      intensity: 0.86,
-      seed: state.recipe.seed,
-      tuning: CameraTuning.fromRecipe(state.recipe),
-      protectedRegions: state.recipe.protect.toSet(),
+    _commit(
+      state.copyWith(
+        intensity: 0.86,
+        seed: state.recipe.seed,
+        tuning: CameraTuning.fromRecipe(state.recipe),
+        protectedRegions: state.recipe.protect.toSet(),
+      ),
     );
   }
 
@@ -159,15 +209,68 @@ class CameraLabController extends Notifier<CameraLabState> {
     if (!updated.add(region)) {
       updated.remove(region);
     }
-    state = state.copyWith(protectedRegions: updated);
+    _commit(state.copyWith(protectedRegions: updated));
   }
 
   void setImage(ImportedImage image) {
-    state = state.copyWith(image: image);
+    _commit(state.copyWith(image: image));
   }
 
   void clearImage() {
-    state = state.copyWith(clearImage: true);
+    _commit(state.copyWith(clearImage: true));
+  }
+
+  void _commit(CameraLabState next) {
+    if (_sameContent(state, next)) return;
+    if (_transactionStart != null) {
+      _transactionChanged = true;
+      _redoStack.clear();
+      state = _withHistoryFlags(next);
+      return;
+    }
+    _pushBounded(_undoStack, _snapshot(state));
+    _redoStack.clear();
+    state = _withHistoryFlags(next);
+  }
+
+  void _finishActiveTransaction() {
+    if (_transactionStart != null) {
+      endHistoryTransaction();
+    }
+  }
+
+  CameraLabState _withHistoryFlags(CameraLabState value) => value.copyWith(
+    canUndo: _undoStack.isNotEmpty,
+    canRedo: _redoStack.isNotEmpty,
+  );
+
+  CameraLabState _snapshot(CameraLabState value) =>
+      value.copyWith(canUndo: false, canRedo: false);
+
+  void _pushBounded(List<CameraLabState> stack, CameraLabState value) {
+    stack.add(value);
+    if (stack.length > maxHistoryEntries) {
+      stack.removeAt(0);
+    }
+  }
+
+  bool _sameContent(CameraLabState first, CameraLabState second) {
+    final firstTuning = first.tuning;
+    final secondTuning = second.tuning;
+    return first.selectedPack == second.selectedPack &&
+        first.selectedRecipeId == second.selectedRecipeId &&
+        first.intensity == second.intensity &&
+        first.seed == second.seed &&
+        firstTuning.exposure == secondTuning.exposure &&
+        firstTuning.contrast == secondTuning.contrast &&
+        firstTuning.saturation == secondTuning.saturation &&
+        firstTuning.warmth == secondTuning.warmth &&
+        firstTuning.grain == secondTuning.grain &&
+        firstTuning.vignette == secondTuning.vignette &&
+        firstTuning.bloom == secondTuning.bloom &&
+        firstTuning.flash == secondTuning.flash &&
+        setEquals(first.protectedRegions, second.protectedRegions) &&
+        identical(first.image, second.image);
   }
 }
 

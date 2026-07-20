@@ -9,13 +9,21 @@
 set -eu
 
 TARGET="${1:-all}"
+WARNINGS=0
+FAILURES=0
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 ok() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
-warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
-fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; }
+warn() {
+  WARNINGS=$((WARNINGS + 1))
+  printf '  \033[33m!\033[0m %s\n' "$1"
+}
+fail() {
+  FAILURES=$((FAILURES + 1))
+  printf '  \033[31m✗\033[0m %s\n' "$1"
+}
 
 section() {
   printf '\n\033[1m── %s ──\033[0m\n' "$1"
@@ -73,14 +81,19 @@ check_rust() {
 check_ios() {
   section "iOS 预检"
   if ! command -v xcodebuild >/dev/null 2>&1; then
-    warn "xcodebuild 缺失，需 App Store 安装完整 Xcode（仅 Command Line Tools 不够）"
+    fail "xcodebuild 缺失，需 App Store 安装完整 Xcode（仅 Command Line Tools 不够）"
     return 0
   fi
-  ok "xcodebuild → $(xcodebuild -version | head -1)"
+  if xcode_version=$(xcodebuild -version 2>/dev/null); then
+    ok "xcodebuild → $(printf '%s\n' "$xcode_version" | head -1)"
+  else
+    fail "当前只有 Command Line Tools；请安装完整 Xcode 并运行 xcode-select"
+    return 0
+  fi
   if command -v pod >/dev/null 2>&1; then
     ok "CocoaPods → $(pod --version)"
   else
-    warn "CocoaPods 缺失，跑 \`brew install cocoapods\` 安装"
+    fail "CocoaPods 缺失，跑 \`brew install cocoapods\` 安装"
   fi
   if command -v xcrun >/dev/null 2>&1; then
     xcrun simctl list runtimes 2>/dev/null | grep -q 'iOS' \
@@ -92,29 +105,37 @@ check_ios() {
 check_android() {
   section "Android 预检"
   if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ]; then
-    warn "ANDROID_HOME / ANDROID_SDK_ROOT 未设置"
+    fail "ANDROID_HOME / ANDROID_SDK_ROOT 未设置"
   else
     ok "Android SDK 目录已设置：${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
   fi
   if command -v adb >/dev/null 2>&1; then
     ok "adb → $(command -v adb)"
   else
-    warn "adb 缺失，需 Android SDK Platform Tools"
+    fail "adb 缺失，需 Android SDK Platform Tools"
   fi
   if command -v java >/dev/null 2>&1; then
-    ok "Java → $(java -version 2>&1 | head -1)"
+    if java_version=$(java -version 2>&1); then
+      ok "Java → $(printf '%s\n' "$java_version" | head -1)"
+    else
+      fail "Java 启动失败，需安装 JDK 17+"
+    fi
   else
-    warn "Java 缺失，需 JDK 17+"
+    fail "Java 缺失，需 JDK 17+"
   fi
 }
 
 check_macos() {
   section "macOS 预检"
   if [ "$(uname)" != "Darwin" ]; then
-    warn "当前不在 macOS，跳过"
+    fail "当前不在 macOS，无法构建 macOS 应用"
     return 0
   fi
-  require_cmd xcodebuild || warn "Xcode 缺失"
+  if ! command -v xcodebuild >/dev/null 2>&1 || ! xcodebuild -version >/dev/null 2>&1; then
+    fail "需要完整 Xcode；仅 Command Line Tools 无法构建 macOS 应用"
+  else
+    ok "完整 Xcode 可用"
+  fi
 }
 
 check_windows() {
@@ -146,20 +167,48 @@ check_linux() {
 
 check_static() {
   section "静态检查"
-  ./tool/flutterw analyze && ok "flutter analyze" || fail "flutter analyze 失败"
-  (cd native && ../tool/cargow fmt --all -- --check) && ok "cargo fmt --check" || fail "cargo fmt 失败"
+  if ./tool/flutterw analyze; then
+    ok "flutter analyze"
+  else
+    fail "flutter analyze 失败"
+  fi
+  if ./tool/cargow fmt --all -- --check; then
+    ok "cargo fmt --check"
+  else
+    fail "cargo fmt 失败"
+  fi
 }
 
 check_tests() {
   section "测试套件"
-  ./tool/flutterw test 2>&1 | tail -3
-  (cd native && ../tool/cargow test --workspace 2>&1 | tail -3)
+  if flutter_test_output=$(./tool/flutterw test 2>&1); then
+    printf '%s\n' "$flutter_test_output" | tail -3
+    ok "flutter test"
+  else
+    printf '%s\n' "$flutter_test_output" | tail -12
+    fail "flutter test 失败"
+  fi
+  if cargo_test_output=$(./tool/cargow test --workspace 2>&1); then
+    printf '%s\n' "$cargo_test_output" | tail -3
+    ok "cargo test"
+  else
+    printf '%s\n' "$cargo_test_output" | tail -12
+    fail "cargo test 失败"
+  fi
 }
 
 print_summary() {
   section "结论"
-  printf "  全部预检通过 → 可以跑 \`flutter build <platform>\`\n"
-  printf "  任何标 ! 的项都需要主人手动处理（通常是一次性授权）\n"
+  if [ "$FAILURES" -gt 0 ]; then
+    printf '  预检未通过：%s 个阻塞项，%s 个提醒。\n' "$FAILURES" "$WARNINGS"
+    printf '  修复标 ✗ 的阻塞项后再执行平台构建。\n'
+    return 1
+  fi
+  if [ "$WARNINGS" -gt 0 ]; then
+    printf '  核心预检通过，另有 %s 个非阻塞提醒。\n' "$WARNINGS"
+  else
+    printf '  全部预检通过 → 可以跑 `flutter build <platform>`\n'
+  fi
 }
 
 main() {

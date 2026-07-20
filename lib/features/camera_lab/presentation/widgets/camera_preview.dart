@@ -17,6 +17,7 @@ class CameraPreview extends StatelessWidget {
     this.borderRadius = 24,
     this.showOverlay = true,
     this.liteMode = false,
+    this.repaintBoundaryKey,
   });
 
   final CameraRecipe recipe;
@@ -27,6 +28,9 @@ class CameraPreview extends StatelessWidget {
   final double borderRadius;
   final bool showOverlay;
   final bool liteMode;
+
+  /// 外部传入的 GlobalKey，用于通过 RenderRepaintBoundary 导出当前画面 PNG。
+  final GlobalKey? repaintBoundaryKey;
 
   @override
   Widget build(BuildContext context) {
@@ -42,83 +46,86 @@ class CameraPreview extends StatelessWidget {
           );
     final runProcedural = !liteMode;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: ColoredBox(
-        color: const Color(0xff090a09),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Transform.scale(
-              scale: 1 + recipe.lens.distortion.abs() * 0.035,
-              child: ColorFiltered(
-                colorFilter: ColorFilter.matrix(matrix),
-                child: source,
-              ),
-            ),
-            if (tuning.bloom > 0.03)
-              Opacity(
-                opacity: (tuning.bloom * intensity * 0.28).clamp(0, 0.32),
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(
-                    sigmaX: tuning.bloom * 10,
-                    sigmaY: tuning.bloom * 10,
-                  ),
-                  child: ColorFiltered(
-                    colorFilter: ColorFilter.matrix(matrix),
-                    child: source,
-                  ),
+    return RepaintBoundary(
+      key: repaintBoundaryKey,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: ColoredBox(
+          color: const Color(0xff090a09),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Transform.scale(
+                scale: 1 + recipe.lens.distortion.abs() * 0.035,
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.matrix(matrix),
+                  child: source,
                 ),
               ),
-            if (runProcedural && recipe.lens.chromaticAberration > 0.04)
-              _ChromaticEdge(
-                amount: recipe.lens.chromaticAberration * intensity,
-              ),
-            if (tuning.flash > 0.02)
-              _FlashOverlay(amount: tuning.flash * intensity),
-            if (runProcedural && recipe.condition.lightLeak > 0.02)
-              _LightLeakOverlay(
-                amount: recipe.condition.lightLeak * intensity,
-                signature: signature,
-              ),
-            if (tuning.vignette > 0.02)
-              _VignetteOverlay(amount: tuning.vignette * intensity),
-            if (runProcedural && tuning.grain > 0.02)
-              IgnorePointer(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    isComplex: true,
-                    willChange: false,
-                    painter: _GrainPainter(
-                      amount: tuning.grain * intensity,
-                      seed: signature.grainSeed.toInt() & 0x7fffffff,
-                      colorNoise: recipe.medium.colorNoise,
+              if (tuning.bloom > 0.03)
+                Opacity(
+                  opacity: (tuning.bloom * intensity * 0.28).clamp(0, 0.32),
+                  child: ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(
+                      sigmaX: tuning.bloom * 10,
+                      sigmaY: tuning.bloom * 10,
+                    ),
+                    child: ColorFiltered(
+                      colorFilter: ColorFilter.matrix(matrix),
+                      child: source,
                     ),
                   ),
                 ),
-              ),
-            if (recipe.capture.timestamp && showOverlay)
-              const Positioned(
-                right: 18,
-                bottom: 16,
-                child: Text(
-                  '19  07  ’06',
-                  style: TextStyle(
-                    color: Color(0xffff9a54),
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    shadows: [Shadow(color: Colors.black87, blurRadius: 2)],
+              if (runProcedural && recipe.lens.chromaticAberration > 0.04)
+                _ChromaticEdge(
+                  amount: recipe.lens.chromaticAberration * intensity,
+                ),
+              if (tuning.flash > 0.02)
+                _FlashOverlay(amount: tuning.flash * intensity),
+              if (runProcedural && recipe.condition.lightLeak > 0.02)
+                _LightLeakOverlay(
+                  amount: recipe.condition.lightLeak * intensity,
+                  signature: signature,
+                ),
+              if (tuning.vignette > 0.02)
+                _VignetteOverlay(amount: tuning.vignette * intensity),
+              if (runProcedural && tuning.grain > 0.02)
+                IgnorePointer(
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      isComplex: true,
+                      willChange: false,
+                      painter: _GrainPainter(
+                        amount: tuning.grain * intensity,
+                        seed: signature.grainSeed.toInt() & 0x7fffffff,
+                        colorNoise: recipe.medium.colorNoise,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            if (showOverlay)
-              Positioned(
-                left: 16,
-                top: 14,
-                child: _LiveBadge(pack: recipe.pack),
-              ),
-          ],
+              if (recipe.capture.timestamp && showOverlay)
+                const Positioned(
+                  right: 18,
+                  bottom: 16,
+                  child: Text(
+                    '19  07  ’06',
+                    style: TextStyle(
+                      color: Color(0xffff9a54),
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      shadows: [Shadow(color: Colors.black87, blurRadius: 2)],
+                    ),
+                  ),
+                ),
+              if (showOverlay)
+                Positioned(
+                  left: 16,
+                  top: 14,
+                  child: _LiveBadge(pack: recipe.pack),
+                ),
+            ],
+          ),
         ),
       ),
     );

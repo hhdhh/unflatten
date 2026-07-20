@@ -1,6 +1,12 @@
 #!/bin/sh
 set -eu
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(dirname "$script_dir")
+if [ ! -f Cargo.toml ] && [ -f "$repo_root/native/Cargo.toml" ]; then
+  cd "$repo_root/native"
+fi
+
 if command -v cargo >/dev/null 2>&1; then
   exec cargo "$@"
 fi
@@ -14,5 +20,5 @@ fi
 
 export RUSTUP_HOME="${RUSTUP_HOME:-$dev_root/rustup}"
 export CARGO_HOME="${CARGO_HOME:-$dev_root/cargo}"
+export PATH="$rustup_bin:$PATH"
 exec "$rustup_bin/cargo" "$@"
-

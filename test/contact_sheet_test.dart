@@ -13,7 +13,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('试拍表'));
+    await tester.tap(find.byKey(const Key('open-contact-sheet')));
     await tester.pumpAndSettle();
 
     expect(find.text('Camera Contact Sheet'), findsOneWidget);
@@ -26,15 +26,14 @@ void main() {
     );
   });
 
-  testWidgets('试拍表 lite 模式仍然渲染 24 个 CameraPreview',
-      (tester) async {
+  testWidgets('试拍表 lite 模式仍然渲染 24 个 CameraPreview', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1100, 820));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(const ProviderScope(child: UnflattenApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('试拍表'));
+    await tester.tap(find.byKey(const Key('open-contact-sheet')));
     await tester.pumpAndSettle();
 
     final switchFinder = find.descendant(

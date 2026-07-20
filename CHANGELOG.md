@@ -10,9 +10,30 @@ Unflatten Studio 的所有显著改动都会记录在这个文件里。
 ### 待定
 
 - 颗粒画师离屏合成与缓存
-- 真实图片导入后 `_PreviewStage` 自适应长宽比
 - 试拍表仅对选中相机实时渲染的开关
 - 真机构建（iOS、Android、macOS、Windows）管线化
+
+## [0.1.1] - 2026-07-20
+
+### 新增
+
+- 当前画面 PNG 导出：Web Blob 下载、桌面系统保存面板、移动端系统分享面板。
+- 32 步撤销/重做历史，滑块拖动按事务合并为单个步骤，历史快照不复制图片字节。
+- Hex Seed 手动输入、随机按钮与 `⌘/Ctrl+Z`、`⇧⌘Z`、`Ctrl+Y` 快捷键。
+- Web Release 正式纳入支持平台，并完成真实 `390×844` 与 `1440×900` 浏览器验收。
+
+### 修复
+
+- 修复导出 `GlobalKey` 未挂载到预览画布，导致按钮始终提示画布未就绪的问题。
+- 修复桌面工作区顶栏按钮溢出，以及试拍表测试依赖按钮文字导致的回归。
+- 修复 `tool/cargow` 在仓库根目录找不到 Rust workspace 和 `cargo-fmt` 的问题。
+- 修复 `tool/verify-build.sh` 把缺少 Xcode、Android SDK 或 Java 错报为“全部通过”的问题。
+
+### 验证
+
+- Flutter analyze 0 issue，Flutter 23 项测试、Rust 4 项测试全部通过。
+- Web Release 构建通过，并实际导出约 280KB PNG 文件。
+- macOS / iOS 构建由本机缺少完整 Xcode 阻塞；Android 构建由本机缺少 Android SDK 与 JDK 阻塞。
 
 ## [0.1.0] - 2026-07-19
 
@@ -50,5 +71,6 @@ Unflatten Studio 的所有显著改动都会记录在这个文件里。
 - 仅作示例场景与导入图片；不包含真实相机、胶片或品牌的命名映射。
 - 仅静态图像；不支持视频、PSD 或图层编辑。
 
-[Unreleased]: https://github.com/unflatten-studio/unflatten/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/unflatten-studio/unflatten/releases/tag/v0.1.0
+[Unreleased]: https://github.com/hhdhh/unflatten/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/hhdhh/unflatten/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/hhdhh/unflatten/releases/tag/v0.1.0

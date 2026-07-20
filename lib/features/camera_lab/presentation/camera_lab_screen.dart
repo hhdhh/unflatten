@@ -3,39 +3,99 @@ import 'dart:ui' as ui;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:unflatten_studio/core/export/export.dart';
 import 'package:unflatten_studio/core/theme/unflatten_theme.dart';
 import 'package:unflatten_studio/features/camera_lab/application/camera_lab_controller.dart';
 import 'package:unflatten_studio/features/camera_lab/data/camera_catalog.dart';
 import 'package:unflatten_studio/features/camera_lab/domain/camera_recipe.dart';
 import 'package:unflatten_studio/features/camera_lab/presentation/widgets/camera_preview.dart';
 
-class CameraLabScreen extends ConsumerWidget {
+class CameraLabScreen extends ConsumerStatefulWidget {
   const CameraLabScreen({super.key});
+
+  @override
+  ConsumerState<CameraLabScreen> createState() => _CameraLabScreenState();
+}
+
+class _CameraLabScreenState extends ConsumerState<CameraLabScreen> {
+  final GlobalKey _previewKey = GlobalKey(debugLabel: 'unflatten-preview');
+  bool _isExporting = false;
 
   static const _imageTypes = XTypeGroup(
     label: '图像',
     extensions: ['jpg', 'jpeg', 'png', 'webp', 'tif', 'tiff', 'heic'],
   );
 
-  Future<void> _pickImage(BuildContext context, WidgetRef ref) async {
+  Future<void> _pickImage() async {
     try {
       final file = await openFile(acceptedTypeGroups: [_imageTypes]);
       if (file == null) return;
       final bytes = await file.readAsBytes();
+      if (!mounted) return;
       ref
           .read(cameraLabProvider.notifier)
           .setImage(ImportedImage(name: file.name, bytes: bytes));
     } catch (error) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('无法打开这张图片：$error')));
     }
   }
 
-  Future<void> _copyRecipe(BuildContext context, WidgetRef ref) async {
+  Future<void> _exportImage() async {
+    if (_isExporting) return;
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context).clamp(2.0, 3.0);
+    setState(() => _isExporting = true);
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      final boundary =
+          _previewKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) {
+        throw StateError('画布未就绪，请稍后再试');
+      }
+      final image = await boundary.toImage(pixelRatio: pixelRatio);
+      final ByteData? byteData;
+      try {
+        byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      } finally {
+        image.dispose();
+      }
+      if (byteData == null) {
+        throw StateError('画布编码失败');
+      }
+      final bytes = byteData.buffer.asUint8List();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final recipe = ref.read(cameraLabProvider).recipe.id;
+      final result = await exportPngBytes(
+        bytes,
+        filename: 'unflatten-$recipe-$timestamp.png',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.cancelled ? '已取消导出' : '已导出：${result.detail}'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导出失败：$error')));
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  Future<void> _copyRecipe() async {
     final state = ref.read(cameraLabProvider);
     final payload = state.recipe.toJson()
       ..['seed'] = state.seed
@@ -56,31 +116,58 @@ class CameraLabScreen extends ConsumerWidget {
     await Clipboard.setData(
       ClipboardData(text: const JsonEncoder.withIndent('  ').convert(payload)),
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('当前相机配方已复制为 .ucamera JSON')));
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth >= 1100) {
-              return _DesktopCameraLab(
-                key: const Key('camera-lab-desktop'),
-                onPickImage: () => _pickImage(context, ref),
-                onCopyRecipe: () => _copyRecipe(context, ref),
-              );
-            }
-            return _MobileCameraLab(
-              key: const Key('camera-lab-mobile'),
-              onPickImage: () => _pickImage(context, ref),
-              onCopyRecipe: () => _copyRecipe(context, ref),
-            );
-          },
+  Widget build(BuildContext context) {
+    final controller = ref.read(cameraLabProvider.notifier);
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+            controller.undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+            controller.undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
+            controller.redo,
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          control: true,
+          shift: true,
+        ): controller.redo,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true):
+            controller.redo,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 1100) {
+                  return _DesktopCameraLab(
+                    key: const Key('camera-lab-desktop'),
+                    onPickImage: _pickImage,
+                    onCopyRecipe: _copyRecipe,
+                    onExportImage: _isExporting ? null : _exportImage,
+                    isExporting: _isExporting,
+                    previewKey: _previewKey,
+                  );
+                }
+                return _MobileCameraLab(
+                  key: const Key('camera-lab-mobile'),
+                  onPickImage: _pickImage,
+                  onCopyRecipe: _copyRecipe,
+                  onExportImage: _isExporting ? null : _exportImage,
+                  isExporting: _isExporting,
+                  previewKey: _previewKey,
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -92,10 +179,16 @@ class _DesktopCameraLab extends ConsumerWidget {
     super.key,
     required this.onPickImage,
     required this.onCopyRecipe,
+    required this.onExportImage,
+    required this.isExporting,
+    this.previewKey,
   });
 
   final VoidCallback onPickImage;
   final VoidCallback onCopyRecipe;
+  final VoidCallback? onExportImage;
+  final bool isExporting;
+  final GlobalKey? previewKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,12 +210,14 @@ class _DesktopCameraLab extends ConsumerWidget {
                 imageName: state.image?.name,
                 onPickImage: onPickImage,
                 onCopyRecipe: onCopyRecipe,
+                onExportImage: onExportImage,
+                isExporting: isExporting,
               ),
               const Divider(),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
-                  child: _PreviewStage(state: state),
+                  child: _PreviewStage(state: state, previewKey: previewKey),
                 ),
               ),
               const Divider(),
@@ -149,10 +244,16 @@ class _MobileCameraLab extends ConsumerWidget {
     super.key,
     required this.onPickImage,
     required this.onCopyRecipe,
+    required this.onExportImage,
+    required this.isExporting,
+    this.previewKey,
   });
 
   final VoidCallback onPickImage;
   final VoidCallback onCopyRecipe;
+  final VoidCallback? onExportImage;
+  final bool isExporting;
+  final GlobalKey? previewKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -163,7 +264,11 @@ class _MobileCameraLab extends ConsumerWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-            child: _PreviewStage(state: state, compact: true),
+            child: _PreviewStage(
+              state: state,
+              compact: true,
+              previewKey: previewKey,
+            ),
           ),
         ),
         SizedBox(
@@ -179,7 +284,12 @@ class _MobileCameraLab extends ConsumerWidget {
             compact: true,
           ),
         ),
-        _MobileActionBar(onPickImage: onPickImage, onCopyRecipe: onCopyRecipe),
+        _MobileActionBar(
+          onPickImage: onPickImage,
+          onCopyRecipe: onCopyRecipe,
+          onExportImage: onExportImage,
+          isExporting: isExporting,
+        ),
       ],
     );
   }
@@ -377,17 +487,22 @@ class _WorkspaceHeader extends ConsumerWidget {
     required this.imageName,
     required this.onPickImage,
     required this.onCopyRecipe,
+    required this.onExportImage,
+    required this.isExporting,
   });
 
   final String? imageName;
   final VoidCallback onPickImage;
   final VoidCallback onCopyRecipe;
+  final VoidCallback? onExportImage;
+  final bool isExporting;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 只订阅当前相机名：调滑块/Seed/Intensity 不重建。
-    final recipeName = ref.watch(
-      cameraLabProvider.select((s) => s.recipe.name),
+    final headerState = ref.watch(
+      cameraLabProvider.select(
+        (state) => (state.recipe.name, state.canUndo, state.canRedo),
+      ),
     );
     return SizedBox(
       height: 72,
@@ -401,7 +516,7 @@ class _WorkspaceHeader extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    recipeName,
+                    headerState.$1,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 2),
@@ -414,21 +529,48 @@ class _WorkspaceHeader extends ConsumerWidget {
                 ],
               ),
             ),
-            OutlinedButton.icon(
+            IconButton(
+              onPressed: headerState.$2
+                  ? ref.read(cameraLabProvider.notifier).undo
+                  : null,
+              tooltip: '撤销 · ⌘/Ctrl Z',
+              icon: const Icon(Icons.undo_rounded, size: 19),
+            ),
+            IconButton(
+              onPressed: headerState.$3
+                  ? ref.read(cameraLabProvider.notifier).redo
+                  : null,
+              tooltip: '重做 · ⇧⌘Z / Ctrl Y',
+              icon: const Icon(Icons.redo_rounded, size: 19),
+            ),
+            const SizedBox(width: 4),
+            IconButton.outlined(
+              key: const Key('open-contact-sheet'),
               onPressed: () => _showContactSheet(context),
+              tooltip: '试拍表',
               icon: const Icon(Icons.grid_view_rounded, size: 18),
-              label: const Text('试拍表'),
             ),
-            const SizedBox(width: 10),
-            OutlinedButton.icon(
+            const SizedBox(width: 6),
+            IconButton.outlined(
               onPressed: onPickImage,
+              tooltip: '打开图像',
               icon: const Icon(Icons.folder_open_rounded, size: 18),
-              label: const Text('打开图像'),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 6),
+            IconButton.outlined(
+              onPressed: onExportImage,
+              tooltip: '导出当前画面',
+              icon: isExporting
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_rounded, size: 18),
+            ),
+            const SizedBox(width: 6),
             FilledButton.icon(
               onPressed: onCopyRecipe,
-              icon: const Icon(Icons.data_object_rounded, size: 18),
+              icon: const Icon(Icons.data_object_rounded, size: 16),
               label: const Text('复制配方'),
             ),
           ],
@@ -438,14 +580,17 @@ class _WorkspaceHeader extends ConsumerWidget {
   }
 }
 
-class _MobileHeader extends StatelessWidget {
+class _MobileHeader extends ConsumerWidget {
   const _MobileHeader({required this.imageName, required this.onPickImage});
 
   final String? imageName;
   final VoidCallback onPickImage;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(
+      cameraLabProvider.select((state) => (state.canUndo, state.canRedo)),
+    );
     return SizedBox(
       height: 62,
       child: Padding(
@@ -467,6 +612,20 @@ class _MobileHeader extends StatelessWidget {
                 ),
               ),
             const SizedBox(width: 8),
+            IconButton(
+              onPressed: history.$1
+                  ? ref.read(cameraLabProvider.notifier).undo
+                  : null,
+              tooltip: '撤销',
+              icon: const Icon(Icons.undo_rounded),
+            ),
+            IconButton(
+              onPressed: history.$2
+                  ? ref.read(cameraLabProvider.notifier).redo
+                  : null,
+              tooltip: '重做',
+              icon: const Icon(Icons.redo_rounded),
+            ),
             IconButton.filledTonal(
               onPressed: onPickImage,
               tooltip: '打开图像',
@@ -480,10 +639,15 @@ class _MobileHeader extends StatelessWidget {
 }
 
 class _PreviewStage extends StatefulWidget {
-  const _PreviewStage({required this.state, this.compact = false});
+  const _PreviewStage({
+    required this.state,
+    this.compact = false,
+    this.previewKey,
+  });
 
   final CameraLabState state;
   final bool compact;
+  final GlobalKey? previewKey;
 
   @override
   State<_PreviewStage> createState() => _PreviewStageState();
@@ -556,8 +720,10 @@ class _PreviewStageState extends State<_PreviewStage> {
       builder: (context, constraints) {
         final targetWidth = compact
             ? constraints.maxWidth
-            : (constraints.maxHeight * _aspectRatio)
-                .clamp(280, constraints.maxWidth);
+            : (constraints.maxHeight * _aspectRatio).clamp(
+                280,
+                constraints.maxWidth,
+              );
         return Center(
           child: SizedBox(
             width: targetWidth.toDouble(),
@@ -574,6 +740,7 @@ class _PreviewStageState extends State<_PreviewStage> {
                       seed: state.seed,
                       imageBytes: state.image?.bytes,
                       borderRadius: compact ? 20 : 26,
+                      repaintBoundaryKey: widget.previewKey,
                     ),
                   ),
                 ),
@@ -769,6 +936,7 @@ class CameraInspector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(cameraLabProvider);
+    final controller = ref.read(cameraLabProvider.notifier);
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         compact ? 20 : 22,
@@ -798,7 +966,7 @@ class CameraInspector extends ConsumerWidget {
                 ),
               ),
               IconButton.outlined(
-                onPressed: ref.read(cameraLabProvider.notifier).resetTuning,
+                onPressed: controller.resetTuning,
                 tooltip: '重置参数',
                 icon: const Icon(Icons.restart_alt_rounded),
               ),
@@ -813,7 +981,9 @@ class CameraInspector extends ConsumerWidget {
           ),
           Slider(
             value: state.intensity,
-            onChanged: ref.read(cameraLabProvider.notifier).setIntensity,
+            onChangeStart: (_) => controller.beginHistoryTransaction(),
+            onChanged: controller.setIntensity,
+            onChangeEnd: (_) => controller.endHistoryTransaction(),
           ),
           const SizedBox(height: 8),
           for (final parameter in TuningParameter.values)
@@ -822,35 +992,10 @@ class CameraInspector extends ConsumerWidget {
               value: _valueFor(state.tuning, parameter),
             ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '缺陷 Seed',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              IconButton(
-                onPressed: ref.read(cameraLabProvider.notifier).randomizeSeed,
-                tooltip: '重新随机',
-                icon: const Icon(Icons.casino_outlined),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-            decoration: BoxDecoration(
-              color: UnflattenColors.raised,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: UnflattenColors.line),
-            ),
-            child: Text(
-              state.seed.toRadixString(16).toUpperCase().padLeft(8, '0'),
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                letterSpacing: 1.2,
-              ),
-            ),
+          _SeedEditor(
+            value: state.seed,
+            onChanged: controller.setSeed,
+            onRandomize: controller.randomizeSeed,
           ),
           const SizedBox(height: 24),
           const Text('语义保护意图', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -887,6 +1032,7 @@ class _TuningSlider extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(cameraLabProvider.notifier);
     return Padding(
       padding: const EdgeInsets.only(bottom: 5),
       child: Column(
@@ -899,14 +1045,135 @@ class _TuningSlider extends ConsumerWidget {
             value: value.clamp(parameter.min, parameter.max).toDouble(),
             min: parameter.min,
             max: parameter.max,
-            onChanged: (next) =>
-                ref.read(cameraLabProvider.notifier).setTuning(parameter, next),
+            onChangeStart: (_) => controller.beginHistoryTransaction(),
+            onChanged: (next) => controller.setTuning(parameter, next),
+            onChangeEnd: (_) => controller.endHistoryTransaction(),
           ),
         ],
       ),
     );
   }
 }
+
+class _SeedEditor extends StatefulWidget {
+  const _SeedEditor({
+    required this.value,
+    required this.onChanged,
+    required this.onRandomize,
+  });
+
+  final int value;
+  final ValueChanged<int> onChanged;
+  final VoidCallback onRandomize;
+
+  @override
+  State<_SeedEditor> createState() => _SeedEditorState();
+}
+
+class _SeedEditorState extends State<_SeedEditor> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formatSeed(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(covariant _SeedEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final text = _formatSeed(widget.value);
+      _controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+      _errorText = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final value = int.tryParse(_controller.text, radix: 16);
+    if (value == null) {
+      setState(() => _errorText = '请输入 1–8 位十六进制数');
+      return;
+    }
+    setState(() => _errorText = null);
+    widget.onChanged(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          '缺陷 Seed · HEX',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 9),
+        TextField(
+          key: const Key('seed-input'),
+          controller: _controller,
+          focusNode: _focusNode,
+          maxLength: 8,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.done,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp('[0-9a-fA-F]')),
+            LengthLimitingTextInputFormatter(8),
+          ],
+          style: const TextStyle(fontFamily: 'monospace', letterSpacing: 1.2),
+          decoration: InputDecoration(
+            prefixText: '0x',
+            counterText: '',
+            errorText: _errorText,
+            filled: true,
+            fillColor: UnflattenColors.raised,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: UnflattenColors.line),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: UnflattenColors.line),
+            ),
+            suffixIcon: IconButton(
+              onPressed: () {
+                _focusNode.unfocus();
+                widget.onRandomize();
+              },
+              tooltip: '重新随机',
+              icon: const Icon(Icons.casino_outlined),
+            ),
+          ),
+          onChanged: (_) {
+            if (_errorText != null) {
+              setState(() => _errorText = null);
+            }
+          },
+          onSubmitted: (_) => _commit(),
+          onTapOutside: (_) {
+            _commit();
+            _focusNode.unfocus();
+          },
+        ),
+      ],
+    );
+  }
+}
+
+String _formatSeed(int value) =>
+    value.toRadixString(16).toUpperCase().padLeft(8, '0');
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label, required this.value});
@@ -999,10 +1266,14 @@ class _MobileActionBar extends ConsumerWidget {
   const _MobileActionBar({
     required this.onPickImage,
     required this.onCopyRecipe,
+    required this.onExportImage,
+    required this.isExporting,
   });
 
   final VoidCallback onPickImage;
   final VoidCallback onCopyRecipe;
+  final VoidCallback? onExportImage;
+  final bool isExporting;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1016,6 +1287,7 @@ class _MobileActionBar extends ConsumerWidget {
         children: [
           Expanded(
             child: OutlinedButton.icon(
+              key: const Key('open-contact-sheet'),
               onPressed: () => _showContactSheet(context),
               icon: const Icon(Icons.grid_view_rounded, size: 18),
               label: const Text('试拍表'),
@@ -1034,6 +1306,17 @@ class _MobileActionBar extends ConsumerWidget {
               icon: const Icon(Icons.tune_rounded, size: 18),
               label: const Text('调校'),
             ),
+          ),
+          const SizedBox(width: 8),
+          IconButton.outlined(
+            onPressed: onExportImage,
+            tooltip: '导出当前画面',
+            icon: isExporting
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_rounded),
           ),
           const SizedBox(width: 8),
           IconButton.outlined(
@@ -1114,14 +1397,10 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      '全实时',
-                      style: TextStyle(fontSize: 12),
-                    ),
+                    const Text('全实时', style: TextStyle(fontSize: 12)),
                     Switch(
                       value: _fullRender,
-                      onChanged: (value) =>
-                          setState(() => _fullRender = value),
+                      onChanged: (value) => setState(() => _fullRender = value),
                     ),
                   ],
                 ),
