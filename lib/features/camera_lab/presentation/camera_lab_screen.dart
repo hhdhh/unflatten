@@ -11,11 +11,11 @@ import 'package:unflatten_studio/core/export/export.dart';
 import 'package:unflatten_studio/core/theme/unflatten_theme.dart';
 import 'package:unflatten_studio/features/camera_lab/application/camera_lab_controller.dart';
 import 'package:unflatten_studio/features/camera_lab/data/camera_catalog.dart';
-import 'package:unflatten_studio/features/camera_lab/domain/camera_recipe.dart';
 import 'camera_lab_desktop.dart';
 import 'camera_lab_mobile.dart';
 import 'package:unflatten_studio/features/camera_lab/presentation/widgets/camera_lab_brand.dart';
 import 'package:unflatten_studio/features/camera_lab/presentation/widgets/camera_preview.dart';
+import 'package:unflatten_studio/features/camera_lab/domain/camera_recipe.dart';
 
 class CameraLabScreen extends ConsumerStatefulWidget {
   const CameraLabScreen({super.key});
@@ -284,57 +284,20 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
                     itemCount: cameraCatalog.length,
                     itemBuilder: (context, index) {
                       final recipe = cameraCatalog[index];
-                      return Material(
-                        color: UnflattenColors.panel,
-                        borderRadius: BorderRadius.circular(14),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: () {
-                            ref
-                                .read(cameraLabProvider.notifier)
-                                .selectRecipe(recipe);
-                            Navigator.of(context).pop();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: CameraPreview(
-                                    recipe: recipe,
-                                    tuning: CameraTuning.fromRecipe(recipe),
-                                    intensity: 0.88,
-                                    seed: recipe.seed,
-                                    imageBytes: state.image?.bytes,
-                                    borderRadius: 10,
-                                    showOverlay: false,
-                                    liteMode: !_fullRender,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  recipe.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  recipe.pack.label,
-                                  style: TextStyle(
-                                    color: packAccentColor(recipe.pack),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      final accent = packAccentColor(recipe.pack);
+                      final isCurrent = state.recipe.id == recipe.id;
+                      return _ContactSheetCell(
+                        recipe: recipe,
+                        accent: accent,
+                        imageBytes: state.image?.bytes,
+                        liteMode: !_fullRender,
+                        selected: isCurrent,
+                        onTap: () {
+                          ref
+                              .read(cameraLabProvider.notifier)
+                              .selectRecipe(recipe);
+                          Navigator.of(context).pop();
+                        },
                       );
                     },
                   );
@@ -347,3 +310,195 @@ class _ContactSheetState extends ConsumerState<_ContactSheet> {
     );
   }
 }
+
+class _ContactSheetCell extends StatefulWidget {
+  const _ContactSheetCell({
+    required this.recipe,
+    required this.accent,
+    required this.imageBytes,
+    required this.liteMode,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CameraRecipe recipe;
+  final Color accent;
+  final Uint8List? imageBytes;
+  final bool liteMode;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_ContactSheetCell> createState() => _ContactSheetCellState();
+}
+
+class _ContactSheetCellState extends State<_ContactSheetCell> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.selected;
+    final accent = widget.accent;
+    final recipe = widget.recipe;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedScale(
+        scale: _hover ? 1.025 : 1.0,
+        duration: UnflattenMotion.fast,
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
+          duration: UnflattenMotion.normal,
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: selected
+                ? UnflattenColors.surfaceElevated
+                : UnflattenColors.panel,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected
+                  ? UnflattenColors.acid
+                  : (_hover
+                      ? accent.withValues(alpha: 0.55)
+                      : UnflattenColors.hairline),
+              width: selected ? 1.6 : 1,
+            ),
+            boxShadow: selected
+                ? UnflattenEffects.recipeShadowSelected
+                : (_hover
+                    ? UnflattenEffects.recipeShadow
+                    : const <BoxShadow>[]),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: widget.onTap,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: CameraPreview(
+                                    recipe: recipe,
+                                    tuning: CameraTuning.fromRecipe(recipe),
+                                    intensity: 0.88,
+                                    seed: recipe.seed,
+                                    imageBytes: widget.imageBytes,
+                                    borderRadius: 10,
+                                    showOverlay: false,
+                                    liteMode: widget.liteMode,
+                                  ),
+                                ),
+                                // v3: pack accent left bar
+                                Positioned(
+                                  left: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    width: 3,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          accent,
+                                          accent.withValues(alpha: 0.4),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                ),
+                                // v3: focal length top-right
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: UnflattenColors.surfaceSubtle
+                                          .withValues(alpha: 0.86),
+                                      borderRadius: BorderRadius.circular(5),
+                                      border: Border.all(
+                                        color: UnflattenColors.lineSoft,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${recipe.lens.focalLengthMm.round()}MM',
+                                      style: const TextStyle(
+                                        fontFamily: 'JetBrains Mono',
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w700,
+                                        color: UnflattenColors.fg,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            recipe.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: selected
+                                  ? UnflattenColors.acid
+                                  : UnflattenColors.fg,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Row(
+                            children: [
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: accent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                recipe.pack.label,
+                                style: TextStyle(
+                                  color: accent,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

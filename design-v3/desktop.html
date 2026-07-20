@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Unflatten Studio · Camera Lab V3 Desktop</title>
+<style>
+:root {
+  --canvas: #0A0A0C;
+  --surface-subtle: #0C0C0E;
+  --surface: #101013;
+  --panel: #131316;
+  --raised: #1C1C21;
+  --surface-elevated: #18181C;
+  --overlay: #26262C;
+  --surface-high: #2A2D33;
+  --fg: #F5F5F7;
+  --fg-muted: #A8A8AD;
+  --fg-subtle: #6E6E74;
+  --fg-disabled: #3D3D42;
+  --hairline: #1F1F24;
+  --hairline-strong: #2D2D33;
+  --line: #26262C;
+  --line-soft: #1A1A1F;
+  --acid: #DFFF66;
+  --acid-hover: #EAFF8A;
+  --accent-soft: rgba(223, 255, 102, 0.16);
+  --accent-dim: rgba(223, 255, 102, 0.08);
+  --accent-line: rgba(223, 255, 102, 0.40);
+  --coral: #FF796A;
+  --cyan: #72D9DF;
+  --lavender: #B99CFF;
+  --amber: #FFB84D;
+  --magenta: #FF4D8A;
+  --shadow-card: 0 1px 1px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.12);
+  --shadow-floating: 0 2px 4px rgba(0,0,0,0.15), 0 12px 24px rgba(0,0,0,0.20);
+  --shadow-glow-accent: 0 0 16px rgba(223,255,102,0.20), 0 0 32px rgba(223,255,102,0.08);
+  --motion-fast: 160ms cubic-bezier(0.25, 1, 0.5, 1);
+  --motion-normal: 240ms cubic-bezier(0.65, 0, 0.35, 1);
+  --motion-slow: 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: var(--canvas); color: var(--fg); font-size: 13px; }
+.viewport { width: 1440px; height: 900px; display: grid; grid-template-columns: 280px 1fr 360px; }
+.rail {
+  background: var(--canvas);
+  border-right: 1px solid var(--hairline);
+  padding: 24px 20px 22px;
+  display: flex; flex-direction: column;
+}
+.brand { display: flex; align-items: center; gap: 8px; margin-bottom: 36px; }
+.brand-dot { width: 8px; height: 8px; background: var(--acid); border-radius: 50%; box-shadow: var(--shadow-glow-accent); }
+.brand-name { font-weight: 800; font-size: 13px; letter-spacing: 1.6px; }
+.brand-sub { font-size: 9px; color: var(--fg-subtle); letter-spacing: 2px; margin-top: 1px; }
+.section-label { font-size: 9.5px; color: var(--fg-subtle); font-weight: 800; letter-spacing: 1.4px; margin-bottom: 12px; }
+.pack-list { display: flex; flex-direction: column; gap: 8px; }
+.pack {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 11px; border-radius: 11px;
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: all var(--motion-normal);
+}
+.pack:hover { background: var(--surface-high); border-color: var(--hairline-strong); }
+.pack.active { background: var(--raised); border-color: rgba(223,255,102,0.40); }
+.pack-dot { width: 7px; height: 7px; border-radius: 50%; }
+.pack-info { flex: 1; }
+.pack-name { font-weight: 700; font-size: 13px; line-height: 1.2; }
+.pack-desc { color: var(--fg-muted); font-size: 11px; line-height: 1.3; margin-top: 2px; }
+.pack-badge { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; padding: 2px 6px; border-radius: 999px; }
+.spacer { flex: 1; }
+.bottom-card { background: var(--raised); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 12px; }
+.bottom-card-icon { width: 18px; height: 18px; color: var(--acid); margin-bottom: 8px; }
+.bottom-card-label { font-size: 11px; font-weight: 800; letter-spacing: 1.4px; margin-bottom: 6px; }
+.bottom-card-text { font-size: 11.5px; color: var(--fg-muted); line-height: 1.4; }
+.session-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); margin-top: 8px; }
+.session-btn { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--fg-muted); background: none; border: 1px solid var(--hairline); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.workspace { display: flex; flex-direction: column; background: var(--canvas); }
+.header {
+  height: 72px;
+  border-bottom: 1px solid var(--hairline);
+  padding: 0 24px;
+  display: flex; align-items: center; gap: 8px;
+}
+.header-title { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.header-name { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+.header-meta { font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
+.header-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px; border-radius: 10px;
+  font-size: 12px; font-weight: 700; letter-spacing: -0.1px;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--fg); cursor: pointer;
+  transition: all var(--motion-fast);
+}
+.header-btn:hover { border-color: var(--hairline-strong); background: var(--surface-high); }
+.header-btn.acid { background: var(--acid); color: var(--canvas); border-color: var(--acid); }
+.header-btn.acid:hover { background: var(--acid-hover); }
+.icon-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid var(--hairline); background: transparent; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-high); }
+.stage {
+  flex: 1;
+  padding: 22px 24px 16px;
+  display: flex; flex-direction: column;
+}
+.preview-wrap {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.preview {
+  width: 100%; height: 100%; max-height: 600px;
+  background: var(--panel);
+  border-radius: 18px;
+  border: 1px solid var(--hairline);
+  display: flex; align-items: center; justify-content: center;
+  background-image: linear-gradient(135deg, #2A2D33, #131316);
+}
+.preview-overlay-text { color: var(--fg-muted); font-size: 11px; letter-spacing: 1.2px; }
+.recipe-strip {
+  height: 196px;
+  border-top: 1px solid var(--hairline);
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 14px;
+  overflow-x: auto;
+}
+.recipe {
+  width: 220px; height: 168px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 10px;
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+  transition: all var(--motion-normal);
+  cursor: pointer;
+}
+.recipe:hover { transform: scale(1.02); border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
+.recipe.selected { border: 1.6px solid var(--accent-line); box-shadow: var(--shadow-glow-accent); background: var(--surface-elevated); }
+.recipe-img {
+  flex: 1; background: linear-gradient(135deg, #2A2D33, #131316); border-radius: 12px;
+  position: relative;
+  margin-bottom: 10px;
+}
+.recipe-accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4)); border-radius: 2px; }
+.recipe-focal {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(12,12,14,0.86); border: 0.5px solid var(--line-soft);
+  padding: 2px 6px; border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+}
+.recipe-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.recipe-info { flex: 1; }
+.recipe-name { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
+.recipe-pack { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; color: var(--coral); margin-top: 2px; }
+.recipe-seed { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-subtle); letter-spacing: 0.6px; }
+.inspector {
+  background: var(--canvas);
+  border-left: 1px solid var(--hairline);
+  padding: 22px 22px 30px;
+  overflow-y: auto;
+}
+.section-card {
+  background: var(--surface-subtle);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.section-card-row { display: flex; gap: 12px; align-items: flex-start; }
+.section-card-info { flex: 1; }
+.section-card-label { font-size: 9.5px; color: var(--fg-subtle); font-weight: 800; letter-spacing: 1.4px; margin-bottom: 8px; }
+.section-card-title { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; margin-bottom: 8px; }
+.chip { display: inline-flex; align-items: center; padding: 3px 6px; border-radius: 4px; background: var(--surface); border: 1px solid var(--hairline); font-size: 10px; letter-spacing: 0.6px; margin-right: 6px; }
+.chip.acid { color: var(--acid); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.chip.muted { color: var(--fg-muted); font-family: 'JetBrains Mono', monospace; }
+.stat-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
+.stat-row:last-child { border-bottom: 0; }
+.stat-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; color: var(--fg-subtle); }
+.stat-value { font-size: 11px; font-weight: 600; color: var(--fg); font-family: 'JetBrains Mono', monospace; }
+.seed-input { display: flex; align-items: center; gap: 8px; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.seed-prefix { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg-subtle); }
+.seed-value { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 1.2px; }
+</style>
+</head>
+<body>
+<div class="viewport">
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div>
+        <div class="brand-name">UNFLATTEN</div>
+        <div class="brand-sub">CAMERA LAB · V3</div>
+      </div>
+    </div>
+    <div class="section-label">CAMERA PACKS</div>
+    <div class="pack-list">
+      <div class="pack"><div class="pack-dot" style="background:var(--coral)"></div><div class="pack-info"><div class="pack-name">Analog Warm</div><div class="pack-desc">35mm 富士·柯达暖色</div></div><div class="pack-badge" style="color:var(--coral);background:rgba(255,167,104,0.16);border:1px solid rgba(255,167,104,0.32)">6</div></div>
+      <div class="pack active"><div class="pack-dot" style="background:var(--cyan)"></div><div class="pack-info"><div class="pack-name">Y2K Digicam</div><div class="pack-desc">CCD 蓝色调 + 闪光</div></div><div class="pack-badge" style="color:var(--cyan);background:rgba(114,217,223,0.16);border:1px solid rgba(114,217,223,0.32)">ACTIVE</div></div>
+      <div class="pack"><div class="pack-dot" style="background:var(--lavender)"></div><div class="pack-info"><div class="pack-name">Instant</div><div class="pack-desc">拍立得柔焦 + 边框</div></div><div class="pack-badge" style="color:var(--lavender);background:rgba(185,156,255,0.16);border:1px solid rgba(185,156,255,0.32)">6</div></div>
+      <div class="pack"><div class="pack-dot" style="background:var(--magenta)"></div><div class="pack-info"><div class="pack-name">Polaroid 600</div><div class="pack-desc">600 系过期胶片</div></div><div class="pack-badge" style="color:var(--magenta);background:rgba(255,77,138,0.16);border:1px solid rgba(255,77,138,0.32)">6</div></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="bottom-card">
+      <svg class="bottom-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <div class="bottom-card-label">LOCAL FIRST</div>
+      <div class="bottom-card-text">所有处理留在本机，种子可控，结果可复现。</div>
+      <div class="session-row">
+        <span class="session-btn">↶ 撤销</span>
+        <span class="session-btn">↷ 重做</span>
+      </div>
+    </div>
+  </aside>
+  <main class="workspace">
+    <header class="header">
+      <div class="header-title">
+        <div class="header-name">Warm 35</div>
+        <div class="header-meta">内置测试场景 · 选择图像开始创作</div>
+      </div>
+      <button class="icon-btn" title="撤销"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-15-6.7L3 13"/></svg></button>
+      <button class="icon-btn" title="重做"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0115-6.7L21 13"/></svg></button>
+      <button class="header-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>试拍表</button>
+      <button class="header-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>复制配方</button>
+      <button class="header-btn acid"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出 PNG</button>
+    </header>
+    <div class="stage">
+      <div class="preview-wrap">
+        <div class="preview">
+          <span class="preview-overlay-text">16:9 PREVIEW · LIVE</span>
+        </div>
+      </div>
+    </div>
+    <div class="recipe-strip">
+      <div class="recipe selected"><div class="recipe-img"><div class="recipe-accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="recipe-focal">35MM</div></div><div class="recipe-row"><div class="recipe-info"><div class="recipe-name">Warm 35</div><div class="recipe-pack" style="color:var(--cyan)">Y2K</div></div><div class="recipe-seed" style="color:var(--acid)">#00ABCD</div></div></div>
+      <div class="recipe"><div class="recipe-img"><div class="recipe-accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="recipe-focal">50MM</div></div><div class="recipe-row"><div class="recipe-info"><div class="recipe-name">Fuji 400H</div><div class="recipe-pack" style="color:var(--coral)">ANALOG</div></div><div class="recipe-seed">#00EF12</div></div></div>
+      <div class="recipe"><div class="recipe-img"><div class="recipe-accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="recipe-focal">28MM</div></div><div class="recipe-row"><div class="recipe-info"><div class="recipe-name">Soft Glow</div><div class="recipe-pack" style="color:var(--lavender)">INSTANT</div></div><div class="recipe-seed">#0045F0</div></div></div>
+    </div>
+  </main>
+  <aside class="inspector">
+    <div class="section-card">
+      <div class="section-card-row">
+        <div class="section-card-info">
+          <div class="section-card-label">CAMERA DNA</div>
+          <div class="section-card-title">Warm 35</div>
+          <span class="chip acid">#00ABCD</span>
+          <span class="chip muted">DIGICAM · 35MM</span>
+        </div>
+        <button class="icon-btn" title="重置"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+      </div>
+    </div>
+    <div style="font-size:12.5px; color:var(--fg-muted); line-height:1.45; margin: 0 0 22px;">CCD 数码相机的标志性蓝色调，闪光补光制造高反差，适合日间街拍与人物。</div>
+    <div class="section-card" style="padding:14px;">
+      <div class="section-card-label" style="margin-bottom:10px;">配方档案</div>
+      <div class="stat-row"><span class="stat-label">机身</span><span class="stat-value">DIGICAM · 35MM</span></div>
+      <div class="stat-row"><span class="stat-label">焦段</span><span class="stat-value">WIDE</span></div>
+      <div class="stat-row"><span class="stat-label">曝光偏置</span><span class="stat-value">+0.33 EV</span></div>
+      <div class="stat-row"><span class="stat-label">白平衡</span><span class="stat-value">+0.20</span></div>
+      <div class="stat-row"><span class="stat-label">色彩</span><span class="stat-value">饱和 0.78 · 暖度 0.42</span></div>
+      <div class="stat-row"><span class="stat-label">缺陷</span><span class="stat-value">尘 8 · 划痕 12 · 漏光 4</span></div>
+    </div>
+    <div class="section-card">
+      <div class="section-card-label">缺陷 SEED · HEX</div>
+      <div class="seed-input" style="margin-top:8px;">
+        <span class="seed-prefix">0x</span>
+        <span class="seed-value">00ABCDEF</span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--fg-subtle); letter-spacing:1px; margin-top:8px;">SEED 00ABCDEF</div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

@@ -54,8 +54,63 @@ abstract final class UnflattenTokens {
   static const surfaceElevated = Color(0xff18181c);
   static const accentSoft = Color(0xfff0ffd0);
   static const scrimBlur = Color(0x66000000);
+  // v3: 卡片阴影 list（用于 hero card / recipe card / contact sheet cell）
+  static const cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x14000000),
+      blurRadius: 1,
+      offset: Offset(0, 1),
+    ),
+    BoxShadow(
+      color: Color(0x1f000000),
+      blurRadius: 8,
+      offset: Offset(0, 4),
+    ),
+  ];
+  static const floatingShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x26000000),
+      blurRadius: 4,
+      offset: Offset(0, 2),
+    ),
+    BoxShadow(
+      color: Color(0x33000000),
+      blurRadius: 24,
+      offset: Offset(0, 12),
+    ),
+  ];
+  static const glowAccent = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x33dfff66),
+      blurRadius: 16,
+      offset: Offset(0, 0),
+      spreadRadius: 1,
+    ),
+    BoxShadow(
+      color: Color(0x14dfff66),
+      blurRadius: 32,
+      offset: Offset(0, 0),
+      spreadRadius: 4,
+    ),
+  ];
+  // v3: motion 曲线（Curves 内置但语义化命名）
+  static const easeOutQuart = Cubic(0.25, 1, 0.5, 1);
+  static const easeInOutCubic = Cubic(0.65, 0, 0.35, 1);
+  static const easeOutExpo = Cubic(0.16, 1, 0.3, 1);
   static const recipeShadow = Color(0x33000000);
   static const recipeShadowSelected = Color(0x66dfff66);
+  // v3: 更精细的 surface 梯度（参考 Linear zinc-900/800/700/600）
+  static const surfaceHigh = Color(0xff2a2d33);
+  static const surfaceSubtle = Color(0xff0c0c0e);
+  // v3: accent 完整组
+  static const acidBase = Color(0xffdfff66);
+  static const acidHover = Color(0xffeaff8a);
+  static const acidPressed = Color(0xffc8e85a);
+  static const accentDim = Color(0x14dfff66); // 8% acid
+  static const accentLine = Color(0x66dfff66); // 40% acid
+  // v3: 完整 hairline/line 梯度
+  static const hairlineStrong = Color(0xff2d2d33);
+  static const lineSoft = Color(0xff1a1a1f);
   // 语义化间距
   static const pageHorizontal = 24.0;
   static const pageVertical = 22.0;
@@ -78,6 +133,21 @@ abstract final class UnflattenTokens {
   static const r5 = 16.0;
   static const r6 = 20.0;
   static const rFull = 999.0;
+  // v3: 字体粗细 scale
+  static const displayWeight = FontWeight.w700;
+  static const titleWeight = FontWeight.w600;
+  static const bodyWeight = FontWeight.w500;
+  static const captionWeight = FontWeight.w700;
+  static const monoWeight = FontWeight.w600;
+  // v3: display size scale
+  static const displaySm = 13.0;
+  static const displayMd = 15.0;
+  static const displayLg = 18.0;
+  static const displayXl = 22.0;
+  static const display2xl = 28.0;
+  static const monoSm = 11.0;
+  static const monoMd = 12.0;
+  static const monoLg = 14.0;
 }
 
 abstract final class UnflattenColors {
@@ -88,6 +158,19 @@ abstract final class UnflattenColors {
   static const line = UnflattenTokens.line;
   static const paper = UnflattenTokens.fg;
   static const muted = UnflattenTokens.fgMuted;
+  // v3: 新 token 别名（兼容层）
+  static const surfaceHigh = UnflattenTokens.surfaceHigh;
+  static const surfaceSubtle = UnflattenTokens.surfaceSubtle;
+  static const acidBase = UnflattenTokens.acidBase;
+  static const acidHover = UnflattenTokens.acidHover;
+  static const accentSoft = UnflattenTokens.accentSoft;
+  static const accentDim = UnflattenTokens.accentDim;
+  static const accentLine = UnflattenTokens.accentLine;
+  static const hairlineStrong = UnflattenTokens.hairlineStrong;
+  static const lineSoft = UnflattenTokens.lineSoft;
+  static const cardShadow = UnflattenTokens.cardShadow;
+  static const floatingShadow = UnflattenTokens.floatingShadow;
+  static const glowAccent = UnflattenTokens.glowAccent;
   static const acid = UnflattenTokens.acid;
   static const coral = UnflattenTokens.coral;
   static const cyan = UnflattenTokens.cyan;
@@ -110,7 +193,6 @@ abstract final class UnflattenColors {
   static const danger = UnflattenTokens.danger;
   static const info = UnflattenTokens.info;
   static const surfaceElevated = UnflattenTokens.surfaceElevated;
-  static const accentSoft = UnflattenTokens.accentSoft;
   static const scrimBlur = UnflattenTokens.scrimBlur;
   static const recipeShadow = UnflattenTokens.recipeShadow;
   static const recipeShadowSelected = UnflattenTokens.recipeShadowSelected;

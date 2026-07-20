@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Unflatten Studio · Camera Lab V3 Mobile</title>
+<meta name="viewport" content="width=390">
+<style>
+:root {
+  --canvas: #0A0A0C;
+  --surface-subtle: #0C0C0E;
+  --surface: #101013;
+  --panel: #131316;
+  --raised: #1C1C21;
+  --surface-elevated: #18181C;
+  --overlay: #26262C;
+  --surface-high: #2A2D33;
+  --fg: #F5F5F7;
+  --fg-muted: #A8A8AD;
+  --fg-subtle: #6E6E74;
+  --hairline: #1F1F24;
+  --hairline-strong: #2D2D33;
+  --line: #26262C;
+  --line-soft: #1A1A1F;
+  --acid: #DFFF66;
+  --acid-hover: #EAFF8A;
+  --accent-soft: rgba(223, 255, 102, 0.16);
+  --accent-dim: rgba(223, 255, 102, 0.08);
+  --accent-line: rgba(223, 255, 102, 0.40);
+  --coral: #FFA768;
+  --cyan: #72D9DF;
+  --lavender: #B99CFF;
+  --magenta: #FF4D8A;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: var(--canvas); color: var(--fg); font-size: 13px; }
+.phone { width: 390px; height: 844px; margin: 0 auto; background: var(--canvas); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.status-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 13px; font-weight: 700; }
+.status-time { font-weight: 700; }
+.status-icons { display: flex; gap: 6px; align-items: center; }
+.app-header { height: 56px; padding: 0 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--hairline); }
+.app-title { flex: 1; }
+.app-name { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
+.app-sub { font-size: 11.5px; color: var(--fg-muted); margin-top: 2px; }
+.btn { padding: 6px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: -0.1px; border: 1px solid var(--hairline); background: transparent; color: var(--fg); cursor: pointer; }
+.btn:hover { background: var(--surface-high); }
+.btn.acid { background: var(--acid); color: var(--canvas); border-color: var(--acid); padding: 8px 14px; }
+.preview-area { padding: 14px 14px 0; aspect-ratio: 4/5; max-height: 420px; }
+.preview {
+  width: 100%; height: 100%;
+  background: var(--panel);
+  border-radius: 20px;
+  border: 1px solid var(--hairline);
+  display: flex; align-items: center; justify-content: center;
+  background-image: linear-gradient(135deg, #2A2D33, #131316);
+}
+.preview-overlay-text { color: var(--fg-muted); font-size: 11px; letter-spacing: 1.2px; }
+.pack-chips { padding: 12px 0; display: flex; gap: 8px; overflow-x: auto; padding-left: 14px; padding-right: 14px; }
+.pack-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--surface); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.pack-chip.active { background: rgba(223,255,102,0.14); border-color: var(--acid); font-weight: 700; }
+.pack-chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+.recipe-strip { padding: 8px 0; display: flex; gap: 10px; overflow-x: auto; padding-left: 14px; padding-right: 14px; }
+.recipe-card { width: 168px; height: 130px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px; padding: 8px; flex-shrink: 0; display: flex; flex-direction: column; }
+.recipe-card.selected { border-color: var(--accent-line); box-shadow: 0 0 16px rgba(223,255,102,0.20); }
+.recipe-img { flex: 1; background: linear-gradient(135deg, #2A2D33, #131316); border-radius: 10px; position: relative; margin-bottom: 8px; }
+.recipe-accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4)); border-radius: 2px; }
+.recipe-focal { position: absolute; top: 6px; right: 6px; background: rgba(12,12,14,0.86); border: 0.5px solid var(--line-soft); padding: 1px 5px; border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; }
+.recipe-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 4px; }
+.recipe-name { font-size: 12px; font-weight: 700; }
+.recipe-pack { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; color: var(--cyan); }
+.recipe-seed { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-subtle); }
+.summary-card { margin: 12px 14px 0; padding: 14px; background: var(--surface-subtle); border: 1px solid var(--hairline); border-radius: 14px; }
+.summary-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.summary-title { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; padding: 3px 6px; border-radius: 4px; background: var(--surface); border: 1px solid var(--hairline); font-size: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.chip.acid { color: var(--acid); }
+.chip.muted { color: var(--fg-muted); }
+.summary-text { font-size: 12.5px; color: var(--fg-muted); line-height: 1.45; margin-top: 8px; }
+.inspector-summary { margin: 8px 14px 0; padding: 14px; background: var(--surface-subtle); border: 1px solid var(--hairline); border-radius: 14px; }
+.inspector-label { font-size: 9.5px; color: var(--fg-subtle); font-weight: 800; letter-spacing: 1.4px; margin-bottom: 8px; }
+.slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.slider-label { font-size: 11px; font-weight: 700; width: 60px; }
+.slider-track { flex: 1; height: 4px; background: var(--hairline); border-radius: 2px; position: relative; }
+.slider-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--acid); border-radius: 2px; width: 68%; }
+.slider-thumb { position: absolute; left: 68%; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: var(--fg); border-radius: 50%; }
+.slider-value { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--fg-muted); }
+.action-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 88px; padding: 12px 14px 24px; background: var(--surface-elevated); border-top: 1px solid var(--hairline); display: flex; gap: 8px; align-items: center; }
+.action-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 700; border: 1px solid var(--hairline); background: transparent; color: var(--fg); flex: 1; }
+.action-btn.acid { background: var(--acid); color: var(--canvas); border-color: var(--acid); flex: 1.5; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <span class="status-icons">⚡ 100%</span>
+  </div>
+  <header class="app-header">
+    <div class="app-title">
+      <div class="app-name">Warm 35</div>
+      <div class="app-sub">内置测试场景</div>
+    </div>
+    <button class="btn">试拍表</button>
+    <button class="btn">↶</button>
+    <button class="btn">↷</button>
+  </header>
+  <div class="preview-area">
+    <div class="preview">
+      <span class="preview-overlay-text">4:5 PREVIEW · LIVE</span>
+    </div>
+  </div>
+  <div class="pack-chips">
+    <div class="pack-chip"><div class="pack-chip-dot" style="background:var(--coral)"></div>Analog Warm</div>
+    <div class="pack-chip active"><div class="pack-chip-dot" style="background:var(--cyan)"></div>Y2K Digicam</div>
+    <div class="pack-chip"><div class="pack-chip-dot" style="background:var(--lavender)"></div>Instant</div>
+    <div class="pack-chip"><div class="pack-chip-dot" style="background:var(--magenta)"></div>Polaroid 600</div>
+  </div>
+  <div class="recipe-strip">
+    <div class="recipe-card selected"><div class="recipe-img"><div class="recipe-accent-bar"></div><div class="recipe-focal">35MM</div></div><div class="recipe-row"><div class="recipe-name">Warm 35</div><div class="recipe-pack">Y2K</div></div></div>
+    <div class="recipe-card"><div class="recipe-img" style="background:linear-gradient(135deg, #2A2D33, #131316);"></div><div class="recipe-row"><div class="recipe-name">Fuji 400H</div><div class="recipe-pack" style="color:var(--coral)">ANALOG</div></div></div>
+    <div class="recipe-card"><div class="recipe-img"></div><div class="recipe-row"><div class="recipe-name">Soft Glow</div><div class="recipe-pack" style="color:var(--lavender)">INSTANT</div></div></div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-row">
+      <div>
+        <div class="summary-title">Warm 35</div>
+        <div class="chip-row" style="margin-top:8px;">
+          <span class="chip acid">#00ABCD</span>
+          <span class="chip muted">DIGICAM · 35MM</span>
+        </div>
+      </div>
+    </div>
+    <div class="summary-text">CCD 数码相机的标志性蓝色调，闪光补光制造高反差，适合日间街拍。</div>
+  </div>
+  <div class="inspector-summary">
+    <div class="inspector-label">调校</div>
+    <div class="slider-row">
+      <span class="slider-label">曝光</span>
+      <div class="slider-track"><div class="slider-fill"></div><div class="slider-thumb"></div></div>
+      <span class="slider-value">+0.33</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">对比</span>
+      <div class="slider-track" style="--p: 50%;"><div class="slider-fill" style="width:50%"></div><div class="slider-thumb" style="left:50%"></div></div>
+      <span class="slider-value">+0.10</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">饱和</span>
+      <div class="slider-track"><div class="slider-fill" style="width:80%"></div><div class="slider-thumb" style="left:80%"></div></div>
+      <span class="slider-value">+0.78</span>
+    </div>
+  </div>
+  <div class="action-bar">
+    <button class="action-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>复制</button>
+    <button class="action-btn acid"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>导出 PNG</button>
+  </div>
+</div>
+</body>
+</html>

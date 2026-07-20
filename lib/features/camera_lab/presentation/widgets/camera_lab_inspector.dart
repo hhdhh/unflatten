@@ -47,6 +47,66 @@ class CameraLabSectionLabel extends StatelessWidget {
   }
 }
 
+/// v3: section card — hairline border + r4 padding
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child, this.padding = 16});
+
+  final Widget child;
+  final double padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        color: UnflattenColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: UnflattenColors.hairline),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// v3: stats row — label / value 配对
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              color: UnflattenColors.fgSubtle,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              color: UnflattenColors.fg,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'JetBrains Mono',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class CameraLabTuningSlider extends ConsumerWidget {
   const CameraLabTuningSlider({
     super.key,
@@ -222,70 +282,31 @@ class CameraLabRecipeFacts extends StatelessWidget {
     final capture = recipe.capture;
     final condition = recipe.condition;
     final profile = body.profile.toUpperCase();
-    final rows = <_FactRow>[
-      _FactRow('机身', '$profile · ${lens.focalLengthMm.round()}MM'),
-      _FactRow('焦段', lens.profile.toUpperCase()),
-      _FactRow('曝光偏置', '${capture.exposureBias > 0 ? '+' : ''}${capture.exposureBias.toStringAsFixed(2)} EV'),
-      _FactRow('白平衡', '${capture.whiteBalance > 0 ? '+' : ''}${capture.whiteBalance.toStringAsFixed(2)}'),
-      _FactRow('色彩', '饱和 ${medium.saturation.toStringAsFixed(2)} · 暖度 ${medium.warmth.toStringAsFixed(2)}'),
-      _FactRow('缺陷', '尘 ${(condition.dust * 100).round()} · 划痕 ${(condition.scratches * 100).round()} · 漏光 ${(condition.lightLeak * 100).round()}'),
+    final rows = <_StatRow>[
+      _StatRow(label: '机身', value: '$profile · ${lens.focalLengthMm.round()}MM'),
+      _StatRow(label: '焦段', value: lens.profile.toUpperCase()),
+      _StatRow(label: '曝光偏置', value: '${capture.exposureBias > 0 ? '+' : ''}${capture.exposureBias.toStringAsFixed(2)} EV'),
+      _StatRow(label: '白平衡', value: '${capture.whiteBalance > 0 ? '+' : ''}${capture.whiteBalance.toStringAsFixed(2)}'),
+      _StatRow(label: '色彩', value: '饱和 ${medium.saturation.toStringAsFixed(2)} · 暖度 ${medium.warmth.toStringAsFixed(2)}'),
+      _StatRow(label: '缺陷', value: '尘 ${(condition.dust * 100).round()} · 划痕 ${(condition.scratches * 100).round()} · 漏光 ${(condition.lightLeak * 100).round()}'),
     ];
-    return Container(
-      decoration: BoxDecoration(
-        color: UnflattenColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: UnflattenColors.hairline),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+    return _SectionCard(
+      padding: 14,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const CameraLabSectionLabel(label: '配方档案'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           for (var i = 0; i < rows.length; i++) ...[
             rows[i],
-            if (i != rows.length - 1) const SizedBox(height: 8),
+            if (i != rows.length - 1)
+              Container(
+                height: 1,
+                color: UnflattenColors.lineSoft,
+              ),
           ],
         ],
       ),
-    );
-  }
-}
-
-class _FactRow extends StatelessWidget {
-  const _FactRow(this.label, this.value);
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(
-            label.toUpperCase(),
-            style: const TextStyle(
-              color: UnflattenColors.fgSubtle,
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-            ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              color: UnflattenColors.fg,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -309,68 +330,86 @@ class CameraLabInspector extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const CameraLabSectionLabel(label: 'CAMERA DNA'),
-                    const SizedBox(height: 6),
-                    Text(
-                      state.recipe.name,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: UnflattenColors.surface,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: UnflattenTokens.hairline),
-                          ),
-                          child: Text(
-                            '#${state.recipe.seed.toRadixString(16).toUpperCase().padLeft(8, '0').substring(0, 6)}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: UnflattenColors.fgMuted,
-                              letterSpacing: 0.6,
-                              fontFamily: 'JetBrains Mono',
-                              height: 1.1,
+          _SectionCard(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const CameraLabSectionLabel(label: 'CAMERA DNA'),
+                      const SizedBox(height: 8),
+                      Text(
+                        state.recipe.name,
+                        style: const TextStyle(
+                          color: UnflattenColors.fg,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: UnflattenColors.surface,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: UnflattenTokens.hairline),
+                            ),
+                            child: Text(
+                              '#${state.recipe.seed.toRadixString(16).toUpperCase().padLeft(8, '0').substring(0, 6)}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: UnflattenColors.acid,
+                                letterSpacing: 0.6,
+                                fontFamily: 'JetBrains Mono',
+                                height: 1.1,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            '${state.recipe.body.profile.toString().toUpperCase()} · ${state.recipe.lens.focalLengthMm.round()}MM',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: UnflattenColors.fgSubtle,
-                              letterSpacing: 0.4,
-                              fontFamily: 'JetBrains Mono',
-                              height: 1.1,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: UnflattenColors.surface,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: UnflattenTokens.hairline),
+                            ),
+                            child: Text(
+                              '${state.recipe.body.profile.toString().toUpperCase()} · ${state.recipe.lens.focalLengthMm.round()}MM',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: UnflattenColors.fgMuted,
+                                letterSpacing: 0.4,
+                                fontFamily: 'JetBrains Mono',
+                                height: 1.1,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton.outlined(
-                onPressed: controller.resetTuning,
-                tooltip: '重置参数',
-                icon: const Icon(Icons.restart_alt_rounded),
-              ),
-            ],
+                IconButton.outlined(
+                  onPressed: controller.resetTuning,
+                  tooltip: '重置参数',
+                  icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           Text(

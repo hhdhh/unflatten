@@ -111,15 +111,66 @@ class _RecipeCardState extends ConsumerState<_RecipeCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: CameraPreview(
-                        recipe: widget.recipe,
-                        tuning: CameraTuning.fromRecipe(widget.recipe),
-                        intensity: 0.88,
-                        seed: widget.recipe.seed,
-                        imageBytes: widget.imageBytes,
-                        borderRadius: 12,
-                        showOverlay: false,
-                        liteMode: true,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: CameraPreview(
+                              recipe: widget.recipe,
+                              tuning: CameraTuning.fromRecipe(widget.recipe),
+                              intensity: 0.88,
+                              seed: widget.recipe.seed,
+                              imageBytes: widget.imageBytes,
+                              borderRadius: 12,
+                              showOverlay: false,
+                              liteMode: true,
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 3,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [accent, accent.withValues(alpha: 0.4)],
+                                ),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: UnflattenColors.surfaceSubtle
+                                    .withValues(alpha: 0.86),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: UnflattenColors.lineSoft,
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                '${widget.recipe.lens.focalLengthMm.round()}MM',
+                                style: const TextStyle(
+                                  fontFamily: 'JetBrains Mono',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: UnflattenColors.fg,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 10),

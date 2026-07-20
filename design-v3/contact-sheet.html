@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Unflatten Studio · Camera Lab V3 Contact Sheet</title>
+<style>
+:root {
+  --canvas: #0A0A0C;
+  --surface-subtle: #0C0C0E;
+  --surface: #101013;
+  --panel: #131316;
+  --surface-elevated: #18181C;
+  --surface-high: #2A2D33;
+  --fg: #F5F5F7;
+  --fg-muted: #A8A8AD;
+  --fg-subtle: #6E6E74;
+  --hairline: #1F1F24;
+  --hairline-strong: #2D2D33;
+  --line-soft: #1A1A1F;
+  --acid: #DFFF66;
+  --accent-line: rgba(223, 255, 102, 0.40);
+  --shadow-glow-accent: 0 0 16px rgba(223,255,102,0.20), 0 0 32px rgba(223,255,102,0.08);
+  --shadow-card: 0 1px 1px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.12);
+  --motion-fast: 160ms cubic-bezier(0.25, 1, 0.5, 1);
+  --motion-normal: 240ms cubic-bezier(0.65, 0, 0.35, 1);
+  --coral: #FFA768;
+  --cyan: #72D9DF;
+  --lavender: #B99CFF;
+  --magenta: #FF4D8A;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: rgba(10,10,12,0.95); color: var(--fg); font-size: 13px; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.dialog {
+  width: 1100px; height: 760px;
+  background: var(--canvas);
+  border-radius: 22px;
+  border: 1px solid var(--hairline);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.dialog-header { padding: 22px 24px 18px; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; gap: 16px; }
+.dialog-title-area { flex: 1; }
+.dialog-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.dialog-sub { font-size: 12px; color: var(--fg-muted); margin-top: 4px; line-height: 1.45; }
+.toggle { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--hairline); }
+.toggle-label { font-size: 12px; font-weight: 600; }
+.toggle-track { width: 32px; height: 18px; background: var(--acid); border-radius: 999px; position: relative; cursor: pointer; }
+.toggle-track::after { content: ''; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; background: var(--canvas); border-radius: 50%; }
+.close-btn { width: 36px; height: 36px; border-radius: 10px; background: transparent; border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.grid-wrap { flex: 1; padding: 18px; overflow-y: auto; }
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.cell {
+  aspect-ratio: 0.78;
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 8px;
+  display: flex; flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--motion-normal);
+}
+.cell:hover { transform: scale(1.025); border-color: var(--hairline-strong); box-shadow: var(--shadow-card); }
+.cell.selected { border: 1.6px solid var(--acid); box-shadow: var(--shadow-glow-accent); background: var(--surface-elevated); }
+.cell-thumb { flex: 1; background: linear-gradient(135deg, #2A2D33, #131316); border-radius: 10px; position: relative; margin-bottom: 7px; }
+.accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 2px; }
+.focal-chip { position: absolute; top: 6px; right: 6px; background: rgba(12,12,14,0.86); border: 0.5px solid var(--line-soft); padding: 1px 5px; border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; }
+.cell-name { font-size: 11.5px; font-weight: 700; }
+.cell-meta { display: flex; align-items: center; gap: 4px; margin-top: 1px; }
+.meta-dot { width: 5px; height: 5px; border-radius: 50%; }
+.meta-pack { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; }
+</style>
+</head>
+<body>
+<div class="dialog">
+  <div class="dialog-header">
+    <div class="dialog-title-area">
+      <div class="dialog-title">试拍表 · 24 机</div>
+      <div class="dialog-sub">同一张图，24 台虚拟相机。点击任意结果继续调校。</div>
+    </div>
+    <div class="toggle">
+      <span class="toggle-label">全实时</span>
+      <div class="toggle-track"></div>
+    </div>
+    <button class="close-btn">✕</button>
+  </div>
+  <div class="grid-wrap">
+    <div class="grid">
+      <!-- Row 1: Y2K Digicam (cyan) - one selected -->
+      <div class="cell selected"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name" style="color:var(--acid)">Warm 35</div><div class="cell-meta"><div class="meta-dot" style="background:var(--cyan)"></div><span class="meta-pack" style="color:var(--cyan)">Y2K</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="focal-chip">28MM</div></div><div class="cell-name">Cool Blue</div><div class="cell-meta"><div class="meta-dot" style="background:var(--cyan)"></div><span class="meta-pack" style="color:var(--cyan)">Y2K</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="focal-chip">50MM</div></div><div class="cell-name">Flash Burn</div><div class="cell-meta"><div class="meta-dot" style="background:var(--cyan)"></div><span class="meta-pack" style="color:var(--cyan)">Y2K</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="focal-chip">85MM</div></div><div class="cell-name">Pixel Snap</div><div class="cell-meta"><div class="meta-dot" style="background:var(--cyan)"></div><span class="meta-pack" style="color:var(--cyan)">Y2K</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name">Cyber 90s</div><div class="cell-meta"><div class="meta-dot" style="background:var(--cyan)"></div><span class="meta-pack" style="color:var(--cyan)">Y2K</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--cyan), rgba(114,217,223,0.4))"></div><div class="focal-chip">24MM</div></div><div class="cell-name">Wide Byte</div><div class="cell-meta"><div class="meta-dot" style="background:var(--cyan)"></div><span class="meta-pack" style="color:var(--cyan)">Y2K</span></div></div>
+      <!-- Row 2: Analog Warm (coral) -->
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="focal-chip">50MM</div></div><div class="cell-name">Fuji 400H</div><div class="cell-meta"><div class="meta-dot" style="background:var(--coral)"></div><span class="meta-pack" style="color:var(--coral)">ANALOG</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name">Kodak Gold</div><div class="cell-meta"><div class="meta-dot" style="background:var(--coral)"></div><span class="meta-pack" style="color:var(--coral)">ANALOG</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="focal-chip">85MM</div></div><div class="cell-name">Portra 800</div><div class="cell-meta"><div class="meta-dot" style="background:var(--coral)"></div><span class="meta-pack" style="color:var(--coral)">ANALOG</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="focal-chip">28MM</div></div><div class="cell-name">Cinestill</div><div class="cell-meta"><div class="meta-dot" style="background:var(--coral)"></div><span class="meta-pack" style="color:var(--coral)">ANALOG</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="focal-chip">50MM</div></div><div class="cell-name">Superia 400</div><div class="cell-meta"><div class="meta-dot" style="background:var(--coral)"></div><span class="meta-pack" style="color:var(--coral)">ANALOG</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--coral), rgba(255,167,104,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name">Velvia 50</div><div class="cell-meta"><div class="meta-dot" style="background:var(--coral)"></div><span class="meta-pack" style="color:var(--coral)">ANALOG</span></div></div>
+      <!-- Row 3: Instant (lavender) -->
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="focal-chip">28MM</div></div><div class="cell-name">Soft Glow</div><div class="cell-meta"><div class="meta-dot" style="background:var(--lavender)"></div><span class="meta-pack" style="color:var(--lavender)">INSTANT</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name">Pastel Wash</div><div class="cell-meta"><div class="meta-dot" style="background:var(--lavender)"></div><span class="meta-pack" style="color:var(--lavender)">INSTANT</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="focal-chip">50MM</div></div><div class="cell-name">Cream Veil</div><div class="cell-meta"><div class="meta-dot" style="background:var(--lavender)"></div><span class="meta-pack" style="color:var(--lavender)">INSTANT</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="focal-chip">85MM</div></div><div class="cell-name">Dreamy 80s</div><div class="cell-meta"><div class="meta-dot" style="background:var(--lavender)"></div><span class="meta-pack" style="color:var(--lavender)">INSTANT</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name">Honey Dusk</div><div class="cell-meta"><div class="meta-dot" style="background:var(--lavender)"></div><span class="meta-pack" style="color:var(--lavender)">INSTANT</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--lavender), rgba(185,156,255,0.4))"></div><div class="focal-chip">24MM</div></div><div class="cell-name">Wide Soft</div><div class="cell-meta"><div class="meta-dot" style="background:var(--lavender)"></div><span class="meta-pack" style="color:var(--lavender)">INSTANT</span></div></div>
+      <!-- Row 4: Polaroid 600 (magenta) -->
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--magenta), rgba(255,77,138,0.4))"></div><div class="focal-chip">50MM</div></div><div class="cell-name">Expired 600</div><div class="cell-meta"><div class="meta-dot" style="background:var(--magenta)"></div><span class="meta-pack" style="color:var(--magenta)">POLAROID</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--magenta), rgba(255,77,138,0.4))"></div><div class="focal-chip">85MM</div></div><div class="cell-name">SX-70 Fade</div><div class="cell-meta"><div class="meta-dot" style="background:var(--magenta)"></div><span class="meta-pack" style="color:var(--magenta)">POLAROID</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--magenta), rgba(255,77,138,0.4))"></div><div class="focal-chip">35MM</div></div><div class="cell-name">Magenta Wash</div><div class="cell-meta"><div class="meta-dot" style="background:var(--magenta)"></div><span class="meta-pack" style="color:var(--magenta)">POLAROID</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--magenta), rgba(255,77,138,0.4))"></div><div class="focal-chip">28MM</div></div><div class="cell-name">Wide Polaroid</div><div class="cell-meta"><div class="meta-dot" style="background:var(--magenta)"></div><span class="meta-pack" style="color:var(--magenta)">POLAROID</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--magenta), rgba(255,77,138,0.4))"></div><div class="focal-chip">50MM</div></div><div class="cell-name">Vintage Wash</div><div class="cell-meta"><div class="meta-dot" style="background:var(--magenta)"></div><span class="meta-pack" style="color:var(--magenta)">POLAROID</span></div></div>
+      <div class="cell"><div class="cell-thumb"><div class="accent-bar" style="background:linear-gradient(180deg, var(--magenta), rgba(255,77,138,0.4))"></div><div class="focal-chip">85MM</div></div><div class="cell-name">Pink Glow</div><div class="cell-meta"><div class="meta-dot" style="background:var(--magenta)"></div><span class="meta-pack" style="color:var(--magenta)">POLAROID</span></div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
