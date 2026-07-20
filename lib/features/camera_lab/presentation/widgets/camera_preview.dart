@@ -261,18 +261,18 @@ class _ChromaticEdge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: ShaderMask(
-        blendMode: BlendMode.screen,
-        shaderCallback: (bounds) => LinearGradient(
-          colors: [
-            const Color(0xffff366f).withValues(alpha: amount * 0.38),
-            Colors.transparent,
-            Colors.transparent,
-            const Color(0xff5e80ff).withValues(alpha: amount * 0.42),
-          ],
-          stops: const [0, 0.18, 0.82, 1],
-        ).createShader(bounds),
-        child: const ColoredBox(color: Colors.white),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xffff366f).withValues(alpha: amount * 0.38),
+              Colors.transparent,
+              Colors.transparent,
+              const Color(0xff5e80ff).withValues(alpha: amount * 0.42),
+            ],
+            stops: const [0, 0.18, 0.82, 1],
+          ),
+        ),
       ),
     );
   }

@@ -375,41 +375,80 @@ class _BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.maybeOf(context)?.size.width ?? 1200;
+    final compact = width < 600;
+    final titleSize = compact ? 12.0 : 14.0;
+    final subtitleSize = compact ? 8.5 : 9.5;
     return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           width: 38,
           height: 38,
           decoration: BoxDecoration(
             color: UnflattenColors.acid,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(11),
           ),
           child: const Icon(
             Icons.camera_rounded,
-            color: UnflattenColors.ink,
+            color: UnflattenColors.onAccent,
             size: 21,
           ),
         ),
-        const SizedBox(width: 11),
-        const Column(
+        SizedBox(width: compact ? 9 : 11),
+        Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'UNFLATTEN',
+              maxLines: 1,
               style: TextStyle(
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
+                fontSize: titleSize,
+                height: 1.0,
+                color: UnflattenColors.fg,
               ),
             ),
-            Text(
-              'CAMERA LAB',
-              style: TextStyle(
-                color: UnflattenColors.muted,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
+            const SizedBox(height: 4),
+            if (!compact)
+              const Text(
+                'CAMERA LAB',
+                style: TextStyle(
+                  color: UnflattenColors.fgMuted,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                  height: 1.0,
+                ),
+              )
+            else
+              Text(
+                'CAMERA LAB',
+                maxLines: 1,
+                style: TextStyle(
+                  color: UnflattenColors.fgMuted,
+                  fontSize: subtitleSize,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                  height: 1.0,
+                ),
               ),
-            ),
+            if (!compact) ...[
+              const SizedBox(height: 4),
+              Text(
+                'V0.1.0',
+                style: TextStyle(
+                  color: UnflattenColors.fgSubtle,
+                  fontSize: 9,
+                  letterSpacing: 0.6,
+                  fontFamily: 'JetBrains Mono',
+                  height: 1.0,
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -431,50 +470,122 @@ class _PackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _accentForPack(pack);
-    return Material(
-      color: selected ? UnflattenColors.raised : Colors.transparent,
-      borderRadius: BorderRadius.circular(13),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(13),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: accent,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pack.label,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      pack.description,
-                      style: const TextStyle(
-                        color: UnflattenColors.muted,
-                        fontSize: 11,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: selected ? UnflattenColors.raised : Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(
+          color: selected
+              ? accent.withValues(alpha: 0.55)
+              : UnflattenColors.hairline,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(11),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (selected)
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.35),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: accent,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              if (selected)
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 16,
-                  color: UnflattenColors.acid,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        pack.label,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          height: 1.2,
+                          color: UnflattenColors.fg,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        pack.description,
+                        style: const TextStyle(
+                          color: UnflattenColors.fgMuted,
+                          fontSize: 11,
+                          height: 1.3,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-            ],
+                if (selected)
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.32),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          'ACTIVE',
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: UnflattenColors.fgMuted,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -515,16 +626,47 @@ class _WorkspaceHeader extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    headerState.$1,
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          headerState.$1,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            letterSpacing: -0.3,
+                            color: UnflattenColors.fg,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'RECIPE',
+                        style: TextStyle(
+                          color: UnflattenColors.fgSubtle,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.4,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     imageName ?? '内置测试场景 · 选择图像开始创作',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: const TextStyle(
+                      color: UnflattenColors.fgMuted,
+                      fontSize: 12,
+                      height: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -919,6 +1061,21 @@ class _RecipeCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 2),
+                // 配方 ID 用 mono + tracked 小字 (Linear/暗房 call-sheet 风)
+                Text(
+                  '#${recipe.seed.toRadixString(16).toUpperCase().padLeft(8, '0').substring(0, 6)}',
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 9,
+                    color: selected
+                        ? UnflattenColors.acid
+                        : UnflattenColors.fgSubtle,
+                    letterSpacing: 0.6,
+                    height: 1.0,
+                  ),
+                ),
               ],
             ),
           ),
@@ -959,11 +1116,56 @@ class CameraInspector extends ConsumerWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      state.recipe.name,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ],
-                ),
+                    state.recipe.name,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  // 配方 ID + 元信息 (Linear 风 metadata pill)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: UnflattenColors.surface,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: UnflattenTokens.hairline,
+                          ),
+                        ),
+                        child: Text(
+                          '#${state.recipe.seed.toRadixString(16).toUpperCase().padLeft(8, '0').substring(0, 6)}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: UnflattenColors.fgMuted,
+                            letterSpacing: 0.6,
+                            fontFamily: 'JetBrains Mono',
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          '${state.recipe.body.profile.toUpperCase()} · ${state.recipe.lens.focalLengthMm.round()}MM',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: UnflattenColors.fgSubtle,
+                            letterSpacing: 0.4,
+                            fontFamily: 'JetBrains Mono',
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               ),
               IconButton.outlined(
                 onPressed: controller.resetTuning,
@@ -1188,14 +1390,22 @@ class _SectionLabel extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              letterSpacing: -0.1,
+              color: UnflattenColors.fg,
+            ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: UnflattenColors.muted,
-            fontFamily: 'monospace',
+          style: TextStyle(
+            color: UnflattenColors.fgMuted,
+            fontSize: 12,
+            fontFamily: 'JetBrains Mono',
+            letterSpacing: 0,
+            height: 1.2,
           ),
         ),
       ],
@@ -1228,9 +1438,9 @@ class _RecipeFacts extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
-              color: UnflattenColors.raised,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: UnflattenColors.line),
+              color: UnflattenColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: UnflattenTokens.hairline),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
