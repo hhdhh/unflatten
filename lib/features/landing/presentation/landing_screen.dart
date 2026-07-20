@@ -162,18 +162,60 @@ void _openRepo() {
 // =============================================================
 // Aurora 背景
 // =============================================================
-class _AuroraBackground extends StatelessWidget {
+class _AuroraBackground extends StatefulWidget {
   const _AuroraBackground();
 
   @override
+  State<_AuroraBackground> createState() => _AuroraBackgroundState();
+}
+
+class _AuroraBackgroundState extends State<_AuroraBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 14),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _AuroraPainter());
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        return CustomPaint(
+          painter: _AuroraPainter(phase: _ctrl.value),
+        );
+      },
+    );
   }
 }
 
 class _AuroraPainter extends CustomPainter {
+  _AuroraPainter({required this.phase});
+  final double phase;
+
   @override
   void paint(Canvas canvas, Size size) {
+    // 让 3 个光斑中心随 phase 微微摆动
+    final t = phase * 2 * math.pi;
+    final heroDx = math.sin(t) * 0.08;
+    final heroDy = -0.8 + math.cos(t * 0.7) * 0.05;
+    final acidDx = -0.6 + math.sin(t * 1.3) * 0.10;
+    final acidDy = 1.2 + math.cos(t * 1.1) * 0.06;
+    final magentaDx = 1.2 + math.cos(t * 0.9) * 0.08;
+    final magentaDy = 1.0 + math.sin(t * 1.2) * 0.06;
+
     final rect = Offset.zero & size;
     // 底层
     canvas.drawRect(
@@ -189,11 +231,11 @@ class _AuroraPainter extends CustomPainter {
           ],
         ).createShader(rect),
     );
-    // 顶部 hero 暖漏光
+    // 顶部 hero 暖漏光（呼吸）
     final hero = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(0.0, -0.8),
-        radius: 1.4,
+        center: Alignment(heroDx, heroDy),
+        radius: 1.4 + math.sin(t * 0.7) * 0.05,
         colors: const [
           Color(0x88ffb547),
           Color(0x44d97757),
@@ -202,10 +244,10 @@ class _AuroraPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, hero);
 
-    // 左下酸绿
+    // 左下酸绿（漂移）
     final acid = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(-0.6, 1.2),
+        center: Alignment(acidDx, acidDy),
         radius: 1.0,
         colors: const [
           Color(0x44dfff66),
@@ -214,10 +256,10 @@ class _AuroraPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, acid);
 
-    // 右下玫红
+    // 右下玫红（漂移）
     final magenta = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(1.2, 1.0),
+        center: Alignment(magentaDx, magentaDy),
         radius: 1.0,
         colors: const [
           Color(0x33ff4d8a),
@@ -268,7 +310,8 @@ class _AuroraPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_AuroraPainter old) => false;
+  @override
+  bool shouldRepaint(_AuroraPainter old) => old.phase != phase;
 }
 
 // =============================================================
@@ -507,8 +550,27 @@ class _SecondaryCtaState extends State<_SecondaryCta> {
 // =============================================================
 // Hero 4 张胶片帧
 // =============================================================
-class _HeroFilmStrip extends StatelessWidget {
+class _HeroFilmStrip extends StatefulWidget {
   const _HeroFilmStrip();
+
+  @override
+  State<_HeroFilmStrip> createState() => _HeroFilmStripState();
+}
+
+class _HeroFilmStripState extends State<_HeroFilmStrip> {
+  late final ScrollController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -516,14 +578,24 @@ class _HeroFilmStrip extends StatelessWidget {
     if (recipes.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 380,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        itemCount: recipes.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 18),
-        itemBuilder: (context, i) {
-          final r = recipes[i];
-          return _HeroFrame(recipe: r, index: i + 1);
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) {
+          return ListView.separated(
+            controller: _ctrl,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            itemCount: recipes.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 18),
+            itemBuilder: (context, i) {
+              final r = recipes[i];
+              return _HeroFrame(
+                recipe: r,
+                index: i + 1,
+                scrollController: _ctrl,
+              );
+            },
+          );
         },
       ),
     );
@@ -531,10 +603,15 @@ class _HeroFilmStrip extends StatelessWidget {
 }
 
 class _HeroFrame extends StatefulWidget {
-  const _HeroFrame({required this.recipe, required this.index});
+  const _HeroFrame({
+    required this.recipe,
+    required this.index,
+    this.scrollController,
+  });
 
   final CameraRecipe recipe;
   final int index;
+  final ScrollController? scrollController;
 
   @override
   State<_HeroFrame> createState() => _HeroFrameState();
@@ -543,11 +620,27 @@ class _HeroFrame extends StatefulWidget {
 class _HeroFrameState extends State<_HeroFrame> {
   bool _hover = false;
 
+  double _parallaxDy() {
+    final ctrl = widget.scrollController;
+    if (ctrl == null || !ctrl.hasClients) return 0;
+    final viewportW = ctrl.position.viewportDimension;
+    const frameW = 280.0;
+    const gap = 18.0;
+    const padL = 32.0;
+    final frameCenterX = padL + (widget.index - 1) * (frameW + gap) + frameW / 2;
+    final viewportCenterX = ctrl.offset + viewportW / 2;
+    final dist = (frameCenterX - viewportCenterX).clamp(-600.0, 600.0);
+    return -(dist / 600.0) * 18.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final r = widget.recipe;
     final accent = packAccentColor(r.pack);
-    return MouseRegion(
+    final dy = _parallaxDy();
+    return Transform.translate(
+      offset: Offset(0, dy),
+      child: MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
@@ -678,6 +771,7 @@ class _HeroFrameState extends State<_HeroFrame> {
           ),
         ),
       ),
+    ),
     );
   }
 }

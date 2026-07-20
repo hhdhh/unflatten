@@ -26,8 +26,13 @@ class CameraLabSideNav extends StatelessWidget {
             ),
             _SideNavPill(
               icon: Icons.bookmarks_rounded,
-              label: '收藏',
-              onTap: () => _showSavedRecipesSoon(context),
+              label: 'My Recipes',
+              onTap: () => context.go('/my-recipes'),
+            ),
+            _SideNavPill(
+              icon: Icons.tune_rounded,
+              label: 'Mix Lab',
+              onTap: () => context.go('/mix-lab'),
             ),
           ],
         ),
@@ -35,14 +40,6 @@ class CameraLabSideNav extends StatelessWidget {
     );
   }
 
-  void _showSavedRecipesSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('配方收藏即将上线（v5）'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
 }
 
 class _SideNavPill extends StatefulWidget {

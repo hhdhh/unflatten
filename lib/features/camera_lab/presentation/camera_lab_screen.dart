@@ -13,6 +13,7 @@ import 'package:unflatten_studio/core/theme/unflatten_theme.dart';
 import 'package:unflatten_studio/features/camera_lab/application/camera_lab_controller.dart';
 import 'package:unflatten_studio/features/camera_lab/data/camera_catalog.dart';
 import 'camera_lab_desktop.dart';
+import 'widgets/camera_dna_flyer.dart';
 import 'camera_lab_mobile.dart';
 import 'package:unflatten_studio/features/camera_lab/presentation/widgets/camera_lab_brand.dart';
 import 'package:unflatten_studio/features/camera_lab/presentation/widgets/camera_preview.dart';
@@ -409,8 +410,25 @@ class _ContactSheetCellState extends State<_ContactSheetCell> {
     final selected = widget.selected;
     final accent = widget.accent;
     final recipe = widget.recipe;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
+    return Tooltip(
+      decoration: const BoxDecoration(color: Colors.transparent),
+      richMessage: WidgetSpan(
+        child: CameraDnaFlyer(
+          values: dnaValuesOf(recipe),
+          accent: accent,
+          packLabel: recipe.pack.label,
+          seed: recipe.seed,
+        ),
+      ),
+      waitDuration: const Duration(milliseconds: 280),
+      preferBelow: false,
+      verticalOffset: 14,
+      triggerMode: TooltipTriggerMode.manual,
+      showDuration: const Duration(seconds: 30),
+      child: MouseRegion(
+      onEnter: (_) {
+        setState(() => _hover = true);
+      },
       onExit: (_) => setState(() => _hover = false),
       child: AnimatedScale(
         scale: _hover ? 1.025 : 1.0,
@@ -573,6 +591,7 @@ class _ContactSheetCellState extends State<_ContactSheetCell> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -974,8 +993,8 @@ class _CompareDnaOverlay extends StatelessWidget {
                 height: dim,
                 child: CustomPaint(
                   painter: _DnaOverlayPainter(
-                    left: _dnaValues(left),
-                    right: _dnaValues(right),
+                    left: dnaValuesOf(left),
+                    right: dnaValuesOf(right),
                     leftColor: packAccentColor(left.pack),
                     rightColor: packAccentColor(right.pack),
                   ),
@@ -988,14 +1007,17 @@ class _CompareDnaOverlay extends StatelessWidget {
     );
   }
 
-  static List<double> _dnaValues(CameraRecipe r) => [
-        r.medium.saturation.clamp(0.0, 1.0),
-        r.medium.grain.clamp(0.0, 1.0),
-        r.lens.vignette.clamp(0.0, 1.0),
-        r.lens.chromaticAberration.clamp(0.0, 1.0),
-        ((r.medium.warmth + 1) / 2).clamp(0.0, 1.0),
-      ];
 }
+
+// 工具函数：从 CameraRecipe 提取 5 轴 DNA 雷达图数据 (0..1)。
+// 提升为顶层私有函数，供 _ContactSheetCell 与 _CompareDnaOverlay 共享。
+List<double> dnaValuesOf(CameraRecipe r) => [
+      r.medium.saturation.clamp(0.0, 1.0),
+      r.medium.grain.clamp(0.0, 1.0),
+      r.lens.vignette.clamp(0.0, 1.0),
+      r.lens.chromaticAberration.clamp(0.0, 1.0),
+      ((r.medium.warmth + 1) / 2).clamp(0.0, 1.0),
+    ];
 
 class _Legend extends StatelessWidget {
   const _Legend({required this.color, required this.label});
