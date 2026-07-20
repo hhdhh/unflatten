@@ -139,3 +139,33 @@ FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
 ## 致谢
 
 Camera DNA 五模块设计的灵感来自银盐胶片、CCD 数码相机与现代手机摄影的视觉语言，但本仓库刻意避免使用真实品牌、相机或胶片型号的名称。所有 24 台内置相机都是化名配方。
+
+## 部署
+
+### GitHub Pages (推荐, 免费永久)
+
+```bash
+# 1) 一次性启用 GitHub Pages
+#    打开 https://github.com/hhdhh/unflatten/settings/pages
+#    Source = "Deploy from a branch"
+#    Branch = "gh-pages" / (root)
+#    点 Save
+
+# 2) 一键部署
+./deploy.sh           # 构建 WASM + push gh-pages
+./deploy.sh --no-build  # 不重新构建, 直接 push 现有 build/web
+```
+
+部署后访问: **https://hhdhh.github.io/unflatten/**
+
+### 本地预览
+
+```bash
+flutter build web --wasm
+cd build/web && python3 -m http.server 8902
+# 访问 http://localhost:8902/
+```
+
+### 自定义域名 (DigitalPlat FreeDomain)
+
+注册一个 [FreeDomain](https://github.com/DigitalPlatDev/FreeDomain) 子域名（例如 `unflatten.dpdns.org`），加 CNAME 指向 `hhdhh.github.io` 即可。
